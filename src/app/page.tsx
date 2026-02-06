@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 interface Todo {
   id: string;
@@ -37,6 +39,13 @@ export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [theme, setTheme] = useState<Theme>("brutal");
   const [isLoaded, setIsLoaded] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   useEffect(() => {
     const storedTodos = localStorage.getItem("todos");
@@ -103,15 +112,23 @@ export default function Home() {
     <div className="min-h-screen bg-[var(--bg)] p-4 sm:p-8 transition-colors duration-300">
       <div className="mx-auto max-w-xl">
         {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-4xl font-black uppercase tracking-tight mb-2">
-            Todo
-          </h1>
+        <header className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-black uppercase tracking-tight mb-2">
+              Todo
+            </h1>
           <p className="text-[var(--fg-secondary)]">
             {totalCount === 0
               ? "No tasks yet. Add something!"
               : `${completedCount}/${totalCount} completed`}
           </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="theme-btn px-4 py-2 text-sm"
+          >
+            ログアウト
+          </button>
         </header>
 
         {/* Theme Switcher */}
