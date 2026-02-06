@@ -1,8 +1,15 @@
 # Todo Next - プロジェクト概要
 
+## 運用ルール
+
+- 実施した作業は全てこのファイルに記録し、何がどこまで終わっていて次に何が必要かを常にわかるようにすること
+- タスク完了時はチェックマークを更新すること
+- 新たに判明した前提条件や設定状況も記載すること
+
 ## 現在の状態
 
 シンプルなTODOアプリが完成し、Vercelにデプロイ済み。
+Supabase基盤（認証・DB）の導入を進行中。
 
 - **本番URL**: https://REDACTED_PRODUCTION_URL
 - **GitHub**: https://github.com/kazuya-tanimoto/todo-next
@@ -11,21 +18,54 @@
 - Next.js 16 (App Router)
 - TypeScript
 - Tailwind CSS
-- ローカルストレージ（現在のデータ保存方式）
+- Supabase（認証 + DB）
+- ローカルストレージ（現在のTODOデータ保存方式、Supabase移行予定）
 
 ### 実装済み機能
 - TODO追加/完了/削除
 - 3つのテーマ切り替え（Mono, Natural, Neo-Brutalism）
 - テーマ・TODOのローカルストレージ永続化
 - レスポンシブデザイン
+- Google OAuthログイン/ログアウト
+- 認証ミドルウェア（未ログイン → /login リダイレクト）
+
+### Supabase設定状況
+- **プロジェクト**: todo-next (ID: `frjwwlmootrswugywibh`)
+- **リージョン**: ap-northeast-1 (東京)
+- **CLIリンク**: 済み
+- **マイグレーション**: 適用済み（lists, todos, list_shares + RLS）
+- **Google OAuth**: Supabaseダッシュボードで有効化済み
+- **環境変数**: `.env.local` に設定済み（gitignore対象）
 
 ### ファイル構成
 ```
 src/
 ├── app/
-│   ├── globals.css    # テーマ定義（CSS変数）
-│   ├── layout.tsx     # ルートレイアウト
-│   └── page.tsx       # メインTODOコンポーネント
+│   ├── auth/callback/
+│   │   └── route.ts     # OAuthコールバック
+│   ├── login/
+│   │   ├── page.tsx      # ログインページ
+│   │   └── page.test.tsx # ログインテスト（3件）
+│   ├── globals.css       # テーマ定義（CSS変数）
+│   ├── layout.tsx        # ルートレイアウト
+│   ├── page.tsx          # メインTODOコンポーネント
+│   └── page.test.tsx     # TODOテスト（3件）
+├── lib/
+│   └── supabase/
+│       ├── client.ts     # ブラウザ用Supabaseクライアント
+│       └── server.ts     # サーバー用Supabaseクライアント
+├── middleware.ts          # 認証ガード + セッション更新
+└── test/
+    └── setup.ts          # テストセットアップ（jest-dom）
+
+supabase/
+├── config.toml            # Supabase CLI設定
+└── migrations/
+    └── 20260202141948_init_schema.sql  # テーブル + RLS
+
+.env.local                 # 環境変数（gitignore対象）
+.env.local.example         # 環境変数テンプレート
+vitest.config.ts           # テスト設定
 ```
 
 ---
@@ -44,65 +84,42 @@ src/
 
 ---
 
-## 次のステップ: Supabase導入
+## Supabase導入
 
-### 1. Supabaseプロジェクト設定（ユーザー側作業）
+### テーブル設計 + RLS
 
-1. Supabaseダッシュボードで新規プロジェクト作成
-2. **Settings → API** から取得:
-   - `Project URL` (例: https://xxxxx.supabase.co)
-   - `anon public` key
-3. **Authentication → Providers → Google** で:
-   - Enable Google provider を ON
-   - Google Cloud ConsoleでOAuth 2.0クライアントID作成
-   - Client ID / Client Secret を入力
-   - Redirect URL: `https://xxxxx.supabase.co/auth/v1/callback`
+スキーマは `supabase/migrations/20260202141948_init_schema.sql` に定義済み。
 
-### 2. 環境変数設定
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxx...
-```
+| テーブル | 用途 |
+|---------|------|
+| `lists` | TODOリスト（user_id, name, created_at） |
+| `todos` | 各TODO項目（list_id, text, completed, created_at） |
+| `list_shares` | リスト共有（list_id, user_id） |
 
-### 3. テーブル設計（予定）
-```sql
--- リスト
-create table lists (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade,
-  name text not null,
-  created_at timestamptz default now()
-);
+RLSポリシーも同マイグレーションに実装済み:
+- 自分が作成したリスト/TODOのCRUD
+- 共有されたリストの閲覧
+- リストオーナーのみ共有設定可能
 
--- TODO
-create table todos (
-  id uuid primary key default gen_random_uuid(),
-  list_id uuid references lists(id) on delete cascade,
-  text text not null,
-  completed boolean default false,
-  created_at timestamptz default now()
-);
+### 認証設計
+- **方式**: Google OAuth（Supabase Auth経由）
+- **アクセス制限**: なし（誰でもGoogleログイン可能、データはRLSで隔離）
+- **フロー**: ログインボタン → Google認証 → /auth/callback → セッション発行 → / にリダイレクト
 
--- リスト共有（将来）
-create table list_shares (
-  list_id uuid references lists(id) on delete cascade,
-  user_id uuid references auth.users(id) on delete cascade,
-  primary key (list_id, user_id)
-);
-```
+### 実装タスク
 
-### 4. Row Level Security（予定）
-- 自分が作成したリストのみ表示
-- 共有されたリストも表示
-- TODO は所属リストの権限に従う
+実装パターンの詳細は `.claude/skills/supabase/SKILL.md` を参照。
 
-### 5. 実装タスク
-1. `@supabase/supabase-js` インストール
-2. Supabaseクライアント初期化
-3. 認証UI（ログイン/ログアウト）
-4. リストCRUD
-5. TODO CRUDをSupabase移行
-6. リアルタイム同期（オプション）
+1. [x] テーブル設計 + RLS（マイグレーション作成済み）
+2. [x] テストインフラ構築（Vitest + Testing Library）
+3. [x] `@supabase/supabase-js` + `@supabase/ssr` インストール
+4. [x] Supabaseクライアント初期化（browser/server）
+5. [x] Middleware（セッション更新 + 認証ガード）
+6. [x] 認証UI（Googleログイン/ログアウト）
+7. [ ] リストCRUD
+8. [ ] TODO CRUDをSupabase移行
+9. [ ] コンポーネント分割（TodoApp, ListSelector, TodoList, ThemeSwitcher）
+10. [ ] リアルタイム同期（オプション）
 
 ---
 
@@ -130,6 +147,22 @@ npm run dev
 # ビルド
 npm run build
 
+# テスト
+npm test              # 実行
+npm run test:watch    # ウォッチモード
+npm run test:coverage # カバレッジ付き
+
 # Vercelデプロイ
 npx vercel --prod
+
+# Supabase
+supabase db push      # マイグレーション適用
+supabase db reset     # ローカルDBリセット
 ```
+
+## テストインフラ
+
+- **フレームワーク**: Vitest + happy-dom
+- **テストライブラリ**: @testing-library/react, @testing-library/user-event, @testing-library/jest-dom
+- **ルール**: [TESTING.md](TESTING.md) を参照
+- **注意**: Node.js 25のネイティブlocalStorageとhappy-domの競合を回避するため、vitest.config.tsで`--no-experimental-webstorage`を設定

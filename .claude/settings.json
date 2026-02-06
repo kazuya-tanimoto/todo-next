@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx eslint --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Running ESLint..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## コンテキスト再注入\\n- プロジェクト: todo-next (Next.js 16 + React 19 + TypeScript + Tailwind CSS 4)\\n- CLAUDE.mdとdocs/PROJECT.md, docs/TESTING.mdを参照\\n- Node.js 25: テストにはexecArgv --no-experimental-webstorage が必要'",
+            "statusMessage": "Restoring context..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "レスポンスに、調査や検証を行わずに専門的な判断・提案・推奨を述べている箇所がないか確認してください。「おそらく」「〜と思います」等の曖昧表現で技術的判断を提示している場合や、根拠を示さず「〜が効果的」「〜すべき」と断定している場合は検出してください。単純な事実の確認や、ユーザーへの質問は対象外です。問題がなければ {\"decision\": \"allow\"} を、問題があれば {\"decision\": \"block\", \"reason\": \"具体的な問題箇所\"} を返してください。",
+            "statusMessage": "Checking for unsupported claims..."
+          },
+          {
+            "type": "prompt",
+            "prompt": "エラーや失敗への対応で、根本原因を調査せずに推測ベースの修正を行っていないか確認してください。特に以下のパターンを検出: (1) 直前の修正が失敗した直後に、別の推測で修正を試みている (2) エラーメッセージや環境情報を調査する前に修正コードを書いている (3) ライブラリの変更やAPIの変更で問題を回避しようとしている。問題がなければ {\"decision\": \"allow\"} を、問題があれば {\"decision\": \"block\", \"reason\": \"具体的な問題箇所\"} を返してください。",
+            "statusMessage": "Checking for ad-hoc fixes..."
+          },
+          {
+            "type": "prompt",
+            "prompt": "タスク完了の報告をしている場合、以下を確認してください: (1) 変更ファイル一覧と差分を確認したか (2) テストやビルドの実行結果を提示しているか (3) 一時ファイルや不要な成果物がプロジェクトに残っていないか。上記のいずれかが欠けている場合は検出してください。単なる調査報告や質問への回答は対象外です。問題がなければ {\"decision\": \"allow\"} を、問題があれば {\"decision\": \"block\", \"reason\": \"具体的な問題箇所\"} を返してください。",
+            "statusMessage": "Checking self-review completeness..."
+          }
+        ]
+      }
+    ]
+  }
+}
