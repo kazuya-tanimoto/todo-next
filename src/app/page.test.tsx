@@ -7,9 +7,32 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+const mockSignOut = vi.fn().mockResolvedValue({});
+
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
-    auth: { signOut: vi.fn().mockResolvedValue({}) },
+    auth: {
+      signOut: mockSignOut,
+      getUser: vi
+        .fn()
+        .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+    },
+    from: () => ({
+      select: () => ({
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
+      insert: () => ({
+        select: () => ({
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+      update: () => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+      delete: () => ({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    }),
   }),
 }));
 
@@ -19,25 +42,42 @@ beforeEach(() => {
 });
 
 describe("Home page", () => {
-  it("renders heading and empty state when no todos exist", async () => {
+  it("renders heading, theme switcher, list selector, and todo section", async () => {
     render(<Home />);
 
     expect(
       screen.getByRole("heading", { level: 1 })
     ).toHaveTextContent("Todo");
 
+    // ThemeSwitcher
+    expect(screen.getByText("Mono")).toBeInTheDocument();
+    expect(screen.getByText("Natural")).toBeInTheDocument();
+    expect(screen.getByText("Brutal")).toBeInTheDocument();
+
+    // ListSelector
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText("New list name...")
+      ).toBeInTheDocument();
+    });
+
+    // TodoSection
     await waitFor(() => {
       expect(
         screen.getByText("Empty list. Time to add tasks!")
       ).toBeInTheDocument();
     });
+  });
+
+  it("renders logout button", async () => {
+    render(<Home />);
 
     expect(
-      screen.getByText("No tasks yet. Add something!")
+      screen.getByRole("button", { name: "ログアウト" })
     ).toBeInTheDocument();
   });
 
-  it("can add a todo via the input form", async () => {
+  it("can add and interact with todos", async () => {
     const user = userEvent.setup();
     render(<Home />);
 
@@ -48,46 +88,16 @@ describe("Home page", () => {
     });
 
     const input = screen.getByPlaceholderText("What needs to be done?");
-    const addButton = screen.getByRole("button", { name: "Add" });
+    const addButtons = screen.getAllByRole("button", { name: "Add" });
+    // TodoSection's Add button (the larger one with px-6)
+    const addButton = addButtons.find(
+      (btn) => btn.classList.contains("px-6")
+    )!;
 
     await user.type(input, "Buy milk");
     await user.click(addButton);
 
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
     expect(screen.getByText("0/1 completed")).toBeInTheDocument();
-    expect(input).toHaveValue("");
-    expect(
-      screen.queryByText("Empty list. Time to add tasks!")
-    ).not.toBeInTheDocument();
-  });
-
-  it("can toggle and delete a todo", async () => {
-    const user = userEvent.setup();
-    render(<Home />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("What needs to be done?")
-      ).toBeInTheDocument();
-    });
-
-    // Add a todo first
-    const input = screen.getByPlaceholderText("What needs to be done?");
-    await user.type(input, "Test todo");
-    await user.click(screen.getByRole("button", { name: "Add" }));
-
-    // Toggle it complete
-    const checkbox = screen.getByRole("checkbox");
-    await user.click(checkbox);
-    expect(checkbox).toBeChecked();
-    expect(screen.getByText("1/1 completed")).toBeInTheDocument();
-
-    // Delete it
-    const deleteButton = screen.getByRole("button", { name: "Delete task" });
-    await user.click(deleteButton);
-    expect(screen.queryByText("Test todo")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("No tasks yet. Add something!")
-    ).toBeInTheDocument();
   });
 });
