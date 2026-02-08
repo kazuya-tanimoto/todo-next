@@ -48,12 +48,21 @@ src/
 │   │   └── page.test.tsx # ログインテスト（3件）
 │   ├── globals.css       # テーマ定義（CSS変数）
 │   ├── layout.tsx        # ルートレイアウト
-│   ├── page.tsx          # メインTODOコンポーネント
-│   └── page.test.tsx     # TODOテスト（3件）
+│   ├── page.tsx          # メインページ（コンポジション）
+│   └── page.test.tsx     # ページテスト（3件）
+├── components/
+│   ├── ListSelector.tsx       # リスト管理（CRUD）
+│   ├── ListSelector.test.tsx  # リストテスト（8件）
+│   ├── ThemeSwitcher.tsx      # テーマ切り替え
+│   ├── ThemeSwitcher.test.tsx # テーマテスト（2件）
+│   ├── TodoSection.tsx        # TODO管理（localStorage）
+│   └── TodoSection.test.tsx   # TODOテスト（3件）
 ├── lib/
 │   └── supabase/
 │       ├── client.ts     # ブラウザ用Supabaseクライアント
 │       └── server.ts     # サーバー用Supabaseクライアント
+├── types/
+│   └── index.ts          # 共有型定義（List, Todo, Theme）
 ├── middleware.ts          # 認証ガード + セッション更新
 └── test/
     └── setup.ts          # テストセットアップ（jest-dom）
@@ -61,7 +70,8 @@ src/
 supabase/
 ├── config.toml            # Supabase CLI設定
 └── migrations/
-    └── 20260202141948_init_schema.sql  # テーブル + RLS
+    ├── 20260202141948_init_schema.sql  # テーブル + RLS
+    └── 20260208022114_fix_rls_recursion.sql  # RLS無限再帰修正
 
 .env.local                 # 環境変数（gitignore対象）
 .env.local.example         # 環境変数テンプレート
@@ -116,10 +126,12 @@ RLSポリシーも同マイグレーションに実装済み:
 4. [x] Supabaseクライアント初期化（browser/server）
 5. [x] Middleware（セッション更新 + 認証ガード）
 6. [x] 認証UI（Googleログイン/ログアウト）
-7. [ ] リストCRUD
+7. [x] リストCRUD
 8. [ ] TODO CRUDをSupabase移行
-9. [ ] コンポーネント分割（TodoApp, ListSelector, TodoList, ThemeSwitcher）
-10. [ ] リアルタイム同期（オプション）
+9. [ ] リスト共有機能
+10. [ ] コンポーネント分割（TodoApp, ListSelector, TodoList, ThemeSwitcher）
+11. [ ] リアルタイム同期（オプション）
+12. [ ] ライブラリ見直し・リファクタ（実装後に検討）
 
 ---
 
@@ -165,4 +177,5 @@ supabase db reset     # ローカルDBリセット
 - **フレームワーク**: Vitest + happy-dom
 - **テストライブラリ**: @testing-library/react, @testing-library/user-event, @testing-library/jest-dom
 - **ルール**: [TESTING.md](TESTING.md) を参照
+- **E2E動作確認**: MCP Playwright + ローカルSupabase（詳細は [TESTING.md](TESTING.md) を参照）
 - **注意**: Node.js 25のネイティブlocalStorageとhappy-domの競合を回避するため、vitest.config.tsで`--no-experimental-webstorage`を設定

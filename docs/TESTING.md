@@ -51,7 +51,30 @@ vi.mock("@/lib/supabase/client", () => ({
 }));
 ```
 
-### E2Eテスト（Playwright導入時）
+### E2E動作確認（MCP Playwright）
+
+実装完了後のE2E動作確認には **MCP Playwright** を使用する。
+ローカルSupabaseを起動し、実際のDB・認証と通信して画面操作を検証する。
+
+#### 手順
+
+1. `supabase start` でローカルSupabaseを起動
+2. `.env.local` をローカルSupabaseのURL・キーに切り替え（リモートは `.env.local.remote` にバックアップ）
+3. Supabase Admin APIでテストユーザーを作成（email+password）
+4. パスワードログインでセッションを取得し、`sb-127-auth-token` クッキーを `base64-` + base64url エンコードで生成
+5. Playwright `context.addCookies` でクッキーをセット（ドメイン: `localhost`）
+6. `npm run dev` で起動したアプリに対してブラウザ操作で検証
+7. 検証後: `.env.local` をリモートに復元、`supabase stop`
+
+#### クッキー仕様
+
+- 名前: `sb-127-auth-token`（ローカル）/ `sb-{project-ref}-auth-token`（リモート）
+- 値: `base64-` プレフィックス + セッションJSON の base64url エンコード（パディングなし）
+- ドメイン: `localhost`（`127.0.0.1` ではなく `localhost` でアクセスすること）
+
+### E2Eテスト自動化（Playwright導入時）
+
+将来的にPlaywrightでテストスイートを構築する場合の方針:
 
 Google OAuthの画面はPlaywrightで操作できない。以下の方法で認証する：
 
