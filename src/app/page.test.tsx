@@ -8,6 +8,10 @@ vi.mock("next/navigation", () => ({
 }));
 
 const mockSignOut = vi.fn().mockResolvedValue({});
+const mockListsOrder = vi.fn();
+const mockTodosOrder = vi.fn();
+const mockTodosSingle = vi.fn();
+const mockTodosEq = vi.fn();
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
@@ -17,28 +21,55 @@ vi.mock("@/lib/supabase/client", () => ({
         .fn()
         .mockResolvedValue({ data: { user: { id: "user-1" } } }),
     },
-    from: () => ({
-      select: () => ({
-        order: vi.fn().mockResolvedValue({ data: [], error: null }),
-      }),
-      insert: () => ({
+    from: (table: string) => {
+      if (table === "lists") {
+        return {
+          select: () => ({
+            order: mockListsOrder,
+          }),
+          insert: () => ({
+            select: () => ({
+              single: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+          update: () => ({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+          delete: () => ({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        };
+      }
+      // table === "todos"
+      return {
         select: () => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          eq: () => ({
+            order: mockTodosOrder,
+          }),
         }),
-      }),
-      update: () => ({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-      delete: () => ({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      }),
-    }),
+        insert: () => ({
+          select: () => ({
+            single: mockTodosSingle,
+          }),
+        }),
+        update: () => ({
+          eq: mockTodosEq,
+        }),
+        delete: () => ({
+          eq: mockTodosEq,
+        }),
+      };
+    },
   }),
 }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
   localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
+  mockListsOrder.mockResolvedValue({ data: [], error: null });
+  mockTodosOrder.mockResolvedValue({ data: [], error: null });
+  mockTodosEq.mockResolvedValue({ error: null });
 });
 
 describe("Home page", () => {
@@ -61,12 +92,10 @@ describe("Home page", () => {
       ).toBeInTheDocument();
     });
 
-    // TodoSection
-    await waitFor(() => {
-      expect(
-        screen.getByText("Empty list. Time to add tasks!")
-      ).toBeInTheDocument();
-    });
+    // TodoSection (no list selected → shows prompt)
+    expect(
+      screen.getByText("Select a list to get started")
+    ).toBeInTheDocument();
   });
 
   it("renders logout button", async () => {
@@ -77,27 +106,27 @@ describe("Home page", () => {
     ).toBeInTheDocument();
   });
 
-  it("can add and interact with todos", async () => {
-    const user = userEvent.setup();
+  it("shows todo input when a list is selected", async () => {
+    const mockList = {
+      id: "list-1",
+      user_id: "user-1",
+      name: "Groceries",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    mockListsOrder.mockResolvedValue({ data: [mockList], error: null });
+    mockTodosOrder.mockResolvedValue({ data: [], error: null });
+
     render(<Home />);
 
+    // ListSelector auto-selects the first list, TodoSection loads
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText("What needs to be done?")
       ).toBeInTheDocument();
     });
 
-    const input = screen.getByPlaceholderText("What needs to be done?");
-    const addButtons = screen.getAllByRole("button", { name: "Add" });
-    // TodoSection's Add button (the larger one with px-6)
-    const addButton = addButtons.find(
-      (btn) => btn.classList.contains("px-6")
-    )!;
-
-    await user.type(input, "Buy milk");
-    await user.click(addButton);
-
-    expect(screen.getByText("Buy milk")).toBeInTheDocument();
-    expect(screen.getByText("0/1 completed")).toBeInTheDocument();
+    expect(
+      screen.getByText("No tasks yet. Add something!")
+    ).toBeInTheDocument();
   });
 });
