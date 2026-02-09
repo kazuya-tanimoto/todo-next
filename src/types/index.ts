@@ -7,9 +7,10 @@ export interface List {
 
 export interface Todo {
   id: string;
+  list_id: string;
   text: string;
   completed: boolean;
-  createdAt: number;
+  created_at: string;
 }
 
 export type Theme = "mono" | "natural" | "brutal";
