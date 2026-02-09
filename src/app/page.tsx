@@ -71,7 +71,7 @@ export default function Home() {
           selectedListId={selectedListId}
           onSelectList={setSelectedListId}
         />
-        <TodoSection />
+        <TodoSection selectedListId={selectedListId} />
       </div>
     </div>
   );

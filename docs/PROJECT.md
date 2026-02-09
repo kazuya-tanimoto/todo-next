@@ -127,7 +127,7 @@ RLSポリシーも同マイグレーションに実装済み:
 5. [x] Middleware（セッション更新 + 認証ガード）
 6. [x] 認証UI（Googleログイン/ログアウト）
 7. [x] リストCRUD
-8. [ ] TODO CRUDをSupabase移行
+8. [x] TODO CRUDをSupabase移行
 9. [ ] リスト共有機能
 10. [ ] コンポーネント分割（TodoApp, ListSelector, TodoList, ThemeSwitcher）
 11. [ ] リアルタイム同期（オプション）

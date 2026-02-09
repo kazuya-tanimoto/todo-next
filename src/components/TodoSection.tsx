@@ -1,56 +1,110 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Todo } from "@/types";
 
-export default function TodoSection() {
+interface Props {
+  selectedListId: string | null;
+}
+
+export default function TodoSection({ selectedListId }: Props) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const storedTodos = localStorage.getItem("todos");
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
+    if (!selectedListId) {
+      setTodos([]);
+      return;
     }
-    setIsLoaded(true);
-  }, []);
 
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem("todos", JSON.stringify(todos));
-    }
-  }, [todos, isLoaded]);
+    const fetchTodos = async () => {
+      setIsLoading(true);
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("todos")
+        .select("*")
+        .eq("list_id", selectedListId)
+        .order("created_at", { ascending: false });
 
-  const addTodo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-
-    const newTodo: Todo = {
-      id: crypto.randomUUID(),
-      text: inputValue.trim(),
-      completed: false,
-      createdAt: Date.now(),
+      if (!error && data) {
+        setTodos(data);
+      }
+      setIsLoading(false);
     };
 
-    setTodos([newTodo, ...todos]);
-    setInputValue("");
+    fetchTodos();
+  }, [selectedListId]);
+
+  const addTodo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || !selectedListId) return;
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("todos")
+      .insert({ list_id: selectedListId, text: inputValue.trim() })
+      .select()
+      .single();
+
+    if (!error && data) {
+      setTodos([data, ...todos]);
+      setInputValue("");
+    }
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+  const toggleTodo = async (id: string, completed: boolean) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("todos")
+      .update({ completed: !completed })
+      .eq("id", id);
+
+    if (!error) {
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, completed: !completed } : todo
+        )
+      );
+    }
   };
 
-  const deleteTodo = (id: string) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+  const deleteTodo = async (id: string) => {
+    const supabase = createClient();
+    const { error } = await supabase.from("todos").delete().eq("id", id);
+
+    if (!error) {
+      setTodos(todos.filter((todo) => todo.id !== id));
+    }
+  };
+
+  const clearCompleted = async () => {
+    if (!selectedListId) return;
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("todos")
+      .delete()
+      .eq("list_id", selectedListId)
+      .eq("completed", true);
+
+    if (!error) {
+      setTodos(todos.filter((t) => !t.completed));
+    }
   };
 
   const completedCount = todos.filter((t) => t.completed).length;
   const totalCount = todos.length;
+
+  if (!selectedListId) {
+    return (
+      <div className="theme-card p-8 text-center">
+        <div className="mb-2 text-4xl">📋</div>
+        <p className="text-[var(--fg-secondary)]">Select a list to get started</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -82,7 +136,7 @@ export default function TodoSection() {
 
       {/* Todo List */}
       <div className="space-y-3">
-        {!isLoaded ? (
+        {isLoading ? (
           <div className="py-8 text-center text-[var(--fg-secondary)]">Loading...</div>
         ) : todos.length === 0 ? (
           <div className="theme-card p-8 text-center">
@@ -100,7 +154,7 @@ export default function TodoSection() {
               <input
                 type="checkbox"
                 checked={todo.completed}
-                onChange={() => toggleTodo(todo.id)}
+                onChange={() => toggleTodo(todo.id, todo.completed)}
                 className="theme-checkbox"
               />
               <span
@@ -126,7 +180,7 @@ export default function TodoSection() {
       {completedCount > 0 && (
         <div className="mt-8">
           <button
-            onClick={() => setTodos(todos.filter((t) => !t.completed))}
+            onClick={clearCompleted}
             className="theme-btn px-4 py-2 text-sm"
           >
             Clear completed ({completedCount})
