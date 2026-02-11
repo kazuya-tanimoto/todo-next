@@ -19,6 +19,8 @@ export default function TodoSection({ selectedListId }: Props) {
       return;
     }
 
+    let ignore = false;
+
     const fetchTodos = async () => {
       setIsLoading(true);
       const supabase = createClient();
@@ -28,6 +30,8 @@ export default function TodoSection({ selectedListId }: Props) {
         .eq("list_id", selectedListId)
         .order("created_at", { ascending: false });
 
+      if (ignore) return;
+
       if (!error && data) {
         setTodos(data);
       }
@@ -35,6 +39,10 @@ export default function TodoSection({ selectedListId }: Props) {
     };
 
     fetchTodos();
+
+    return () => {
+      ignore = true;
+    };
   }, [selectedListId]);
 
   const addTodo = async (e: React.FormEvent) => {
@@ -49,7 +57,7 @@ export default function TodoSection({ selectedListId }: Props) {
       .single();
 
     if (!error && data) {
-      setTodos([data, ...todos]);
+      setTodos((prev) => [data, ...prev]);
       setInputValue("");
     }
   };
@@ -62,8 +70,8 @@ export default function TodoSection({ selectedListId }: Props) {
       .eq("id", id);
 
     if (!error) {
-      setTodos(
-        todos.map((todo) =>
+      setTodos((prev) =>
+        prev.map((todo) =>
           todo.id === id ? { ...todo, completed: !completed } : todo
         )
       );
@@ -75,7 +83,7 @@ export default function TodoSection({ selectedListId }: Props) {
     const { error } = await supabase.from("todos").delete().eq("id", id);
 
     if (!error) {
-      setTodos(todos.filter((todo) => todo.id !== id));
+      setTodos((prev) => prev.filter((todo) => todo.id !== id));
     }
   };
 
@@ -90,7 +98,7 @@ export default function TodoSection({ selectedListId }: Props) {
       .eq("completed", true);
 
     if (!error) {
-      setTodos(todos.filter((t) => !t.completed));
+      setTodos((prev) => prev.filter((t) => !t.completed));
     }
   };
 
