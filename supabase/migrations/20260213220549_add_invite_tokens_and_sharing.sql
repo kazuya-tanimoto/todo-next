@@ -3,11 +3,14 @@
 -- Flow: List owner creates invite token → shares URL → recipient opens URL → accepts invite
 -- This avoids email-based user lookup (privacy risk).
 
+-- 0. Enable pgcrypto for gen_random_bytes (used in token generation)
+create extension if not exists pgcrypto with schema extensions;
+
 -- 1. invite_tokens table
 create table invite_tokens (
   id uuid primary key default gen_random_uuid(),
   list_id uuid references lists(id) on delete cascade not null,
-  token text unique not null default encode(gen_random_bytes(32), 'hex'),
+  token text unique not null default encode(extensions.gen_random_bytes(32), 'hex'),
   created_by uuid references auth.users(id) on delete cascade not null,
   created_at timestamptz default now(),
   expires_at timestamptz default (now() + interval '7 days'),
