@@ -13,4 +13,24 @@ export interface Todo {
   created_at: string;
 }
 
+export interface InviteToken {
+  id: string;
+  list_id: string;
+  token: string;
+  created_by: string;
+  created_at: string;
+  expires_at: string;
+  is_active: boolean;
+}
+
+export interface ListShare {
+  list_id: string;
+  user_id: string;
+}
+
+export interface ListMember {
+  user_id: string;
+  email: string;
+}
+
 export type Theme = "mono" | "natural" | "brutal";
