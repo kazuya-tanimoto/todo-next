@@ -12,6 +12,10 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 describe("Login page", () => {
   beforeEach(() => {
     mockSignInWithOAuth.mockReset();

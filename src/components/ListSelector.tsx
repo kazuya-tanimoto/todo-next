@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { List } from "@/types";
+import ShareDialog from "@/components/ShareDialog";
 
 interface Props {
   selectedListId: string | null;
@@ -11,10 +12,14 @@ interface Props {
 
 export default function ListSelector({ selectedListId, onSelectList }: Props) {
   const [lists, setLists] = useState<List[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newListName, setNewListName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [shareDialogListId, setShareDialogListId] = useState<string | null>(
+    null
+  );
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,6 +34,11 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
 
   const fetchLists = async () => {
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) setCurrentUserId(user.id);
+
     const { data, error } = await supabase
       .from("lists")
       .select("*")
@@ -42,6 +52,8 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     }
     setIsLoading(false);
   };
+
+  const isOwner = (list: List) => list.user_id === currentUserId;
 
   const createList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,10 +115,21 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     }
   };
 
+  const handleLeaveList = () => {
+    if (!shareDialogListId) return;
+    const remaining = lists.filter((l) => l.id !== shareDialogListId);
+    setLists(remaining);
+    if (selectedListId === shareDialogListId) {
+      onSelectList(remaining.length > 0 ? remaining[0].id : null);
+    }
+  };
+
   const startEditing = (list: List) => {
     setEditingId(list.id);
     setEditingName(list.name);
   };
+
+  const shareDialogList = lists.find((l) => l.id === shareDialogListId);
 
   if (isLoading) {
     return (
@@ -149,23 +172,39 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
                       : ""
                   }`}
                 >
+                  {!isOwner(list) && (
+                    <span className="text-[var(--fg-secondary)] mr-1" title="Shared">
+                      *
+                    </span>
+                  )}
                   {list.name}
                 </button>
                 <span className="ml-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
                   <button
-                    onClick={() => startEditing(list)}
+                    onClick={() => setShareDialogListId(list.id)}
                     className="text-xs px-1 text-[var(--fg-secondary)] hover:text-[var(--fg)]"
-                    aria-label={`Rename ${list.name}`}
+                    aria-label={`Share ${list.name}`}
                   >
-                    ✎
+                    &#x1F517;
                   </button>
-                  <button
-                    onClick={() => deleteList(list.id)}
-                    className="text-xs px-1 text-[var(--fg-secondary)] hover:text-red-500"
-                    aria-label={`Delete ${list.name}`}
-                  >
-                    ✕
-                  </button>
+                  {isOwner(list) && (
+                    <>
+                      <button
+                        onClick={() => startEditing(list)}
+                        className="text-xs px-1 text-[var(--fg-secondary)] hover:text-[var(--fg)]"
+                        aria-label={`Rename ${list.name}`}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => deleteList(list.id)}
+                        className="text-xs px-1 text-[var(--fg-secondary)] hover:text-red-500"
+                        aria-label={`Delete ${list.name}`}
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
                 </span>
               </>
             )}
@@ -189,6 +228,17 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
           Add
         </button>
       </form>
+
+      {/* Share dialog */}
+      {shareDialogListId && shareDialogList && (
+        <ShareDialog
+          listId={shareDialogListId}
+          listName={shareDialogList.name}
+          isOwner={isOwner(shareDialogList)}
+          onClose={() => setShareDialogListId(null)}
+          onLeave={handleLeaveList}
+        />
+      )}
     </div>
   );
 }
