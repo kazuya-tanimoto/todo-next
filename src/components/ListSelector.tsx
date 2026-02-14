@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { List } from "@/types";
 import ShareDialog from "@/components/ShareDialog";
+import ListItem from "./ListItem";
 
 interface Props {
   selectedListId: string | null;
@@ -20,17 +21,10 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
   const [shareDialogListId, setShareDialogListId] = useState<string | null>(
     null
   );
-  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchLists();
   }, []);
-
-  useEffect(() => {
-    if (editingId && editInputRef.current) {
-      editInputRef.current.focus();
-    }
-  }, [editingId]);
 
   const fetchLists = async () => {
     const supabase = createClient();
@@ -146,69 +140,20 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
       {/* List items */}
       <div className="flex flex-wrap gap-2 mb-3">
         {lists.map((list) => (
-          <div key={list.id} className="group flex items-center">
-            {editingId === list.id ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  renameList(list.id);
-                }}
-              >
-                <input
-                  ref={editInputRef}
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => renameList(list.id)}
-                  className="theme-input px-2 py-1 text-sm w-32"
-                />
-              </form>
-            ) : (
-              <>
-                <button
-                  onClick={() => onSelectList(list.id)}
-                  className={`theme-btn px-3 py-1.5 text-sm ${
-                    selectedListId !== list.id
-                      ? "bg-[var(--card-bg)] text-[var(--fg)]"
-                      : ""
-                  }`}
-                >
-                  {!isOwner(list) && (
-                    <span className="text-[var(--fg-secondary)] mr-1" title="Shared">
-                      *
-                    </span>
-                  )}
-                  {list.name}
-                </button>
-                <span className="ml-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                  <button
-                    onClick={() => setShareDialogListId(list.id)}
-                    className="text-xs px-1 text-[var(--fg-secondary)] hover:text-[var(--fg)]"
-                    aria-label={`Share ${list.name}`}
-                  >
-                    &#x1F517;
-                  </button>
-                  {isOwner(list) && (
-                    <>
-                      <button
-                        onClick={() => startEditing(list)}
-                        className="text-xs px-1 text-[var(--fg-secondary)] hover:text-[var(--fg)]"
-                        aria-label={`Rename ${list.name}`}
-                      >
-                        ✎
-                      </button>
-                      <button
-                        onClick={() => deleteList(list.id)}
-                        className="text-xs px-1 text-[var(--fg-secondary)] hover:text-red-500"
-                        aria-label={`Delete ${list.name}`}
-                      >
-                        ✕
-                      </button>
-                    </>
-                  )}
-                </span>
-              </>
-            )}
-          </div>
+          <ListItem
+            key={list.id}
+            list={list}
+            isSelected={selectedListId === list.id}
+            isOwner={isOwner(list)}
+            isEditing={editingId === list.id}
+            editingName={editingName}
+            onSelect={onSelectList}
+            onStartEditing={startEditing}
+            onEditingNameChange={setEditingName}
+            onRename={renameList}
+            onDelete={deleteList}
+            onShare={setShareDialogListId}
+          />
         ))}
       </div>
 
