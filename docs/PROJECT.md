@@ -164,8 +164,8 @@ RLSポリシーも同マイグレーションに実装済み:
 7. [x] リストCRUD
 8. [x] TODO CRUDをSupabase移行
 9. [x] リスト共有機能（招待リンク方式）
-10. [ ] コンポーネント分割（TodoApp, ListSelector, TodoList, ThemeSwitcher）
-11. [ ] リアルタイム同期（オプション）
+10. [x] コンポーネント分割（TodoItem, TodoList, ListItem抽出済み。残りは現状のサイズで適切）
+11. [x] リアルタイム同期（Supabase Realtime — todos, lists, list_shares）
 12. [ ] ライブラリ見直し・リファクタ（実装後に検討）
 
 ---

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { List } from "@/types";
 import ShareDialog from "@/components/ShareDialog";
@@ -22,11 +22,12 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     null
   );
 
-  useEffect(() => {
-    fetchLists();
-  }, []);
+  const selectedListIdRef = useRef(selectedListId);
+  selectedListIdRef.current = selectedListId;
+  const onSelectListRef = useRef(onSelectList);
+  onSelectListRef.current = onSelectList;
 
-  const fetchLists = async () => {
+  const fetchLists = useCallback(async () => {
     const supabase = createClient();
     const {
       data: { user },
@@ -40,12 +41,60 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
 
     if (!error && data) {
       setLists(data);
-      if (!selectedListId && data.length > 0) {
-        onSelectList(data[0].id);
+      if (!selectedListIdRef.current && data.length > 0) {
+        onSelectListRef.current(data[0].id);
       }
     }
     setIsLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLists();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("lists")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lists" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newList = payload.new as List;
+            setLists((prev) =>
+              prev.some((l) => l.id === newList.id) ? prev : [...prev, newList]
+            );
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new as List;
+            setLists((prev) =>
+              prev.map((l) => (l.id === updated.id ? updated : l))
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deleted = payload.old as { id: string };
+            setLists((prev) => {
+              const remaining = prev.filter((l) => l.id !== deleted.id);
+              if (selectedListIdRef.current === deleted.id) {
+                onSelectListRef.current(
+                  remaining.length > 0 ? remaining[0].id : null
+                );
+              }
+              return remaining;
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "list_shares" },
+        () => {
+          fetchLists();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchLists]);
 
   const isOwner = (list: List) => list.user_id === currentUserId;
 
