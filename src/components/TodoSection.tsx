@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Todo } from "@/types";
+import TodoList from "./TodoList";
 
 interface Props {
   selectedListId: string | null;
@@ -143,46 +144,12 @@ export default function TodoSection({ selectedListId }: Props) {
       </form>
 
       {/* Todo List */}
-      <div className="space-y-3">
-        {isLoading ? (
-          <div className="py-8 text-center text-[var(--fg-secondary)]">Loading...</div>
-        ) : todos.length === 0 ? (
-          <div className="theme-card p-8 text-center">
-            <div className="mb-2 text-4xl">📝</div>
-            <p className="text-[var(--fg-secondary)]">Empty list. Time to add tasks!</p>
-          </div>
-        ) : (
-          todos.map((todo) => (
-            <div
-              key={todo.id}
-              className={`theme-card group flex items-center gap-4 p-4 ${
-                todo.completed ? "todo-completed" : ""
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo.id, todo.completed)}
-                className="theme-checkbox"
-              />
-              <span
-                className={`flex-1 text-lg ${
-                  todo.completed ? "line-through text-[var(--fg-secondary)]" : ""
-                }`}
-              >
-                {todo.text}
-              </span>
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className="theme-delete px-3 py-1 font-bold"
-                aria-label="Delete task"
-              >
-                ✕
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+      <TodoList
+        todos={todos}
+        isLoading={isLoading}
+        onToggle={toggleTodo}
+        onDelete={deleteTodo}
+      />
 
       {/* Footer */}
       {completedCount > 0 && (
