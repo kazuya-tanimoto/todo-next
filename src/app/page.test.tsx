@@ -13,6 +13,11 @@ const mockTodosOrder = vi.fn();
 const mockTodosSingle = vi.fn();
 const mockTodosEq = vi.fn();
 
+const mockChannel = {
+  on: vi.fn().mockReturnThis(),
+  subscribe: vi.fn().mockReturnThis(),
+};
+
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
@@ -60,6 +65,8 @@ vi.mock("@/lib/supabase/client", () => ({
         }),
       };
     },
+    channel: () => mockChannel,
+    removeChannel: vi.fn(),
   }),
 }));
 

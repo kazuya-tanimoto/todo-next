@@ -21,10 +21,10 @@ export default function TodoSection({ selectedListId }: Props) {
     }
 
     let ignore = false;
+    const supabase = createClient();
 
     const fetchTodos = async () => {
       setIsLoading(true);
-      const supabase = createClient();
       const { data, error } = await supabase
         .from("todos")
         .select("*")
@@ -41,8 +41,38 @@ export default function TodoSection({ selectedListId }: Props) {
 
     fetchTodos();
 
+    const channel = supabase
+      .channel(`todos:${selectedListId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "todos",
+          filter: `list_id=eq.${selectedListId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newTodo = payload.new as Todo;
+            setTodos((prev) =>
+              prev.some((t) => t.id === newTodo.id) ? prev : [newTodo, ...prev]
+            );
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new as Todo;
+            setTodos((prev) =>
+              prev.map((t) => (t.id === updated.id ? updated : t))
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deleted = payload.old as { id: string };
+            setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       ignore = true;
+      supabase.removeChannel(channel);
     };
   }, [selectedListId]);
 
