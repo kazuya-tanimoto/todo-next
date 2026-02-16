@@ -32,12 +32,11 @@ Supabase基盤（認証・DB）の導入を進行中。
 - 認証ミドルウェア（未ログイン → /login リダイレクト、招待リンクへの自動リダイレクト）
 
 ### Supabase設定状況
-- **プロジェクト**: 新プロジェクトへ移行予定（詳細は [HANDOVER_NEW_PROJECT.md](HANDOVER_NEW_PROJECT.md) を参照）
-- **旧プロジェクト**: `frjwwlmootrswugywibh`（Realtime障害のため廃止予定）
+- **プロジェクト**: `REDACTED_SUPABASE_REF`（todo-next-v2）
 - **リージョン**: ap-northeast-1 (東京)
-- **マイグレーション**: 5ファイル（新プロジェクトに `supabase db push` で適用）
-- **Google OAuth**: 新プロジェクトで再設定が必要
-- **環境変数**: `.env.local` に設定（gitignore対象、新プロジェクトのキーに更新が必要）
+- **マイグレーション**: 6ファイル（適用済み）
+- **Google OAuth**: 設定済み
+- **環境変数**: `.env.local` に設定（gitignore対象）
 
 ### ファイル構成
 ```
@@ -81,7 +80,8 @@ supabase/
     ├── 20260208022114_fix_rls_recursion.sql  # RLS無限再帰修正
     ├── 20260213220549_add_invite_tokens_and_sharing.sql  # 招待リンク + 共有権限
     ├── 20260214050855_enable_realtime.sql  # Realtime有効化
-    └── 20260214072513_add_get_invite_info_rpc.sql  # 招待情報RPC
+    ├── 20260214072513_add_get_invite_info_rpc.sql  # 招待情報RPC
+    └── 20260215080000_fix_realtime_rls.sql  # Realtime + RLS互換性修正
 
 .env.local                 # 環境変数（gitignore対象）
 .env.local.example         # 環境変数テンプレート
@@ -168,7 +168,7 @@ RLSポリシーも同マイグレーションに実装済み:
 9. [x] リスト共有機能（招待リンク方式）
 10. [x] コンポーネント分割（TodoItem, TodoList, ListItem抽出済み。残りは現状のサイズで適切）
 11. [x] リアルタイム同期（Supabase Realtime — todos, lists, list_shares）
-12. [ ] 新Supabaseプロジェクトへの移行（[HANDOVER_NEW_PROJECT.md](HANDOVER_NEW_PROJECT.md) 参照）
+12. [x] 新Supabaseプロジェクトへの移行（`REDACTED_SUPABASE_REF` に移行完了、旧プロジェクト削除済み）
 13. [ ] ライブラリ見直し・リファクタ（実装後に検討）
 
 ---
