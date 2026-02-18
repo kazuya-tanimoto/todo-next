@@ -171,7 +171,7 @@ RLSポリシーも同マイグレーションに実装済み:
 10. [x] コンポーネント分割（TodoItem, TodoList, ListItem抽出済み。残りは現状のサイズで適切）
 11. [x] リアルタイム同期（Supabase Realtime — todos, lists, list_shares）
 12. [x] 新Supabaseプロジェクトへの移行（`REDACTED_SUPABASE_REF` に移行完了、旧プロジェクト削除済み）
-13. [ ] ライブラリ見直し・リファクタ（実装後に検討）
+13. [x] ライブラリ見直し・リファクタ → PBI-014~016に分解して [PBI.md](PBI.md) に移行
 
 ---
 
