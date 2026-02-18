@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
 import { Todo } from "@/types";
 import TodoList from "./TodoList";
 
@@ -22,14 +22,19 @@ export default function TodoSection({ selectedListId }: Props) {
 
     let ignore = false;
     const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const fetchTodos = async () => {
+    const init = async () => {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from("todos")
-        .select("*")
-        .eq("list_id", selectedListId)
-        .order("created_at", { ascending: false });
+
+      const [{ data, error }] = await Promise.all([
+        supabase
+          .from("todos")
+          .select("*")
+          .eq("list_id", selectedListId)
+          .order("created_at", { ascending: false }),
+        ensureRealtimeAuth(supabase),
+      ]);
 
       if (ignore) return;
 
@@ -37,42 +42,44 @@ export default function TodoSection({ selectedListId }: Props) {
         setTodos(data);
       }
       setIsLoading(false);
+
+      channel = supabase
+        .channel(`todos:${selectedListId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "todos",
+            filter: `list_id=eq.${selectedListId}`,
+          },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              const newTodo = payload.new as Todo;
+              setTodos((prev) =>
+                prev.some((t) => t.id === newTodo.id)
+                  ? prev
+                  : [newTodo, ...prev]
+              );
+            } else if (payload.eventType === "UPDATE") {
+              const updated = payload.new as Todo;
+              setTodos((prev) =>
+                prev.map((t) => (t.id === updated.id ? updated : t))
+              );
+            } else if (payload.eventType === "DELETE") {
+              const deleted = payload.old as { id: string };
+              setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
+            }
+          }
+        )
+        .subscribe();
     };
 
-    fetchTodos();
-
-    const channel = supabase
-      .channel(`todos:${selectedListId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "todos",
-          filter: `list_id=eq.${selectedListId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newTodo = payload.new as Todo;
-            setTodos((prev) =>
-              prev.some((t) => t.id === newTodo.id) ? prev : [newTodo, ...prev]
-            );
-          } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new as Todo;
-            setTodos((prev) =>
-              prev.map((t) => (t.id === updated.id ? updated : t))
-            );
-          } else if (payload.eventType === "DELETE") {
-            const deleted = payload.old as { id: string };
-            setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
-          }
-        }
-      )
-      .subscribe();
+    init();
 
     return () => {
       ignore = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [selectedListId]);
 

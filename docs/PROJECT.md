@@ -9,7 +9,7 @@
 ## 現在の状態
 
 シンプルなTODOアプリが完成し、Vercelにデプロイ済み。
-Supabase基盤（認証・DB）の導入を進行中。
+Supabase基盤（認証・DB・Realtime同期）が稼働中。
 
 - **本番URL**: https://REDACTED_PRODUCTION_URL
 - **GitHub**: https://github.com/kazuya-tanimoto/todo-next
@@ -37,6 +37,8 @@ Supabase基盤（認証・DB）の導入を進行中。
 - **マイグレーション**: 6ファイル（適用済み）
 - **Google OAuth**: 設定済み
 - **環境変数**: `.env.local` に設定（gitignore対象）
+- **Realtime**: 有効（todos, lists, list_shares テーブル。本番E2E検証済み）
+- **注意**: Vercel環境変数を設定する際、`echo`等で末尾改行が混入しないよう`printf`を使うこと
 
 ### ファイル構成
 ```

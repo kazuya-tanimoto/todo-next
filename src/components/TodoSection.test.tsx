@@ -30,6 +30,7 @@ const mockChannel = {
 };
 
 vi.mock("@/lib/supabase/client", () => ({
+  ensureRealtimeAuth: vi.fn().mockResolvedValue(undefined),
   createClient: () => ({
     from: () => ({
       select: () => ({

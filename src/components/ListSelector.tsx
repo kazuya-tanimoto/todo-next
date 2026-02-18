@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
 import { List } from "@/types";
 import ShareDialog from "@/components/ShareDialog";
 import ListItem from "./ListItem";
@@ -52,47 +52,57 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     fetchLists();
 
     const supabase = createClient();
-    const channel = supabase
-      .channel("lists")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "lists" },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newList = payload.new as List;
-            setLists((prev) =>
-              prev.some((l) => l.id === newList.id) ? prev : [...prev, newList]
-            );
-          } else if (payload.eventType === "UPDATE") {
-            const updated = payload.new as List;
-            setLists((prev) =>
-              prev.map((l) => (l.id === updated.id ? updated : l))
-            );
-          } else if (payload.eventType === "DELETE") {
-            const deleted = payload.old as { id: string };
-            setLists((prev) => {
-              const remaining = prev.filter((l) => l.id !== deleted.id);
-              if (selectedListIdRef.current === deleted.id) {
-                onSelectListRef.current(
-                  remaining.length > 0 ? remaining[0].id : null
-                );
-              }
-              return remaining;
-            });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    const initRealtime = async () => {
+      await ensureRealtimeAuth(supabase);
+
+      channel = supabase
+        .channel("lists")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "lists" },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              const newList = payload.new as List;
+              setLists((prev) =>
+                prev.some((l) => l.id === newList.id)
+                  ? prev
+                  : [...prev, newList]
+              );
+            } else if (payload.eventType === "UPDATE") {
+              const updated = payload.new as List;
+              setLists((prev) =>
+                prev.map((l) => (l.id === updated.id ? updated : l))
+              );
+            } else if (payload.eventType === "DELETE") {
+              const deleted = payload.old as { id: string };
+              setLists((prev) => {
+                const remaining = prev.filter((l) => l.id !== deleted.id);
+                if (selectedListIdRef.current === deleted.id) {
+                  onSelectListRef.current(
+                    remaining.length > 0 ? remaining[0].id : null
+                  );
+                }
+                return remaining;
+              });
+            }
           }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "list_shares" },
-        () => {
-          fetchLists();
-        }
-      )
-      .subscribe();
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "list_shares" },
+          () => {
+            fetchLists();
+          }
+        )
+        .subscribe();
+    };
+
+    initRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [fetchLists]);
 
