@@ -221,7 +221,7 @@ describe("ListSelector", () => {
     await waitFor(() => {
       expect(screen.getByText("Shared List")).toBeInTheDocument();
     });
-    expect(screen.getByText("(Alice)")).toBeInTheDocument();
+    // Owner name shown as tooltip on share icon, not inline
     expect(
       screen.getByTitle("Shared by Alice")
     ).toBeInTheDocument();
