@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Theme } from "@/types";
+import { Profile, Theme } from "@/types";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import ListSelector from "@/components/ListSelector";
 import TodoSection from "@/components/TodoSection";
@@ -12,6 +12,7 @@ export default function Home() {
   const [theme, setTheme] = useState<Theme>("brutal");
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -30,6 +31,21 @@ export default function Home() {
       setSelectedListId(storedListId);
     }
     setIsLoaded(true);
+
+    const loadProfile = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+      if (data) setProfile(data);
+    };
+    loadProfile();
   }, []);
 
   useEffect(() => {
@@ -58,12 +74,23 @@ export default function Home() {
           <h1 className="text-4xl font-black uppercase tracking-tight mb-2">
             Todo
           </h1>
-          <button
-            onClick={handleLogout}
-            className="theme-btn px-4 py-2 text-sm"
-          >
-            ログアウト
-          </button>
+          <div className="flex items-center gap-3">
+            {profile && (
+              <button
+                onClick={() => router.push("/profile/setup")}
+                className="text-sm text-[var(--fg-secondary)] hover:text-[var(--fg)] transition-colors"
+                title="ニックネームを変更"
+              >
+                {profile.display_name}
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="theme-btn px-4 py-2 text-sm"
+            >
+              ログアウト
+            </button>
+          </div>
         </header>
 
         <ThemeSwitcher theme={theme} onThemeChange={setTheme} />

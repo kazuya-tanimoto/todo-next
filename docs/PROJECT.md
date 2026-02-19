@@ -30,6 +30,7 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - レスポンシブデザイン
 - Google OAuthログイン/ログアウト
 - 認証ミドルウェア（未ログイン → /login リダイレクト、招待リンクへの自動リダイレクト）
+- ニックネーム登録（profilesテーブル、初回ログイン時に設定、後から変更可能）
 
 ### Supabase設定状況
 - **プロジェクト**: `REDACTED_SUPABASE_REF`（todo-next-v2）
@@ -52,6 +53,9 @@ src/
 │   ├── login/
 │   │   ├── page.tsx      # ログインページ
 │   │   └── page.test.tsx # ログインテスト（3件）
+│   ├── profile/setup/
+│   │   ├── page.tsx      # ニックネーム登録/変更ページ
+│   │   └── page.test.tsx # プロフィールテスト（5件）
 │   ├── globals.css       # テーマ定義（CSS変数）
 │   ├── layout.tsx        # ルートレイアウト
 │   ├── page.tsx          # メインページ（コンポジション）
@@ -83,7 +87,8 @@ supabase/
     ├── 20260213220549_add_invite_tokens_and_sharing.sql  # 招待リンク + 共有権限
     ├── 20260214050855_enable_realtime.sql  # Realtime有効化
     ├── 20260214072513_add_get_invite_info_rpc.sql  # 招待情報RPC
-    └── 20260215080000_fix_realtime_rls.sql  # Realtime + RLS互換性修正
+    ├── 20260215080000_fix_realtime_rls.sql  # Realtime + RLS互換性修正
+    └── 20260218000000_add_profiles.sql  # profilesテーブル + get_list_members更新
 
 .env.local                 # 環境変数（gitignore対象）
 .env.local.example         # 環境変数テンプレート

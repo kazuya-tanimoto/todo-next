@@ -203,7 +203,9 @@ export default function ShareDialog({
                       key={member.user_id}
                       className="flex items-center justify-between text-sm bg-[var(--bg)] p-2 rounded"
                     >
-                      <span className="truncate">{member.email}</span>
+                      <span className="truncate">
+                        {member.display_name ?? member.email}
+                      </span>
                       <button
                         onClick={() => removeMember(member.user_id)}
                         className="text-[var(--fg-secondary)] hover:text-red-500 ml-2"

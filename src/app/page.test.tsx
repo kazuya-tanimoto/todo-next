@@ -28,6 +28,19 @@ vi.mock("@/lib/supabase/client", () => ({
         .mockResolvedValue({ data: { user: { id: "user-1" } } }),
     },
     from: (table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              single: () =>
+                Promise.resolve({
+                  data: { id: "user-1", display_name: "テスト", created_at: "2026-01-01" },
+                  error: null,
+                }),
+            }),
+          }),
+        };
+      }
       if (table === "lists") {
         return {
           select: () => ({

@@ -49,6 +49,32 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Profile setup check: redirect to /profile/setup if no profile exists
+  const PROFILE_SKIP_PATHS = ["/login", "/auth", "/profile/setup", "/invite"];
+  const shouldCheckProfile =
+    user &&
+    !PROFILE_SKIP_PATHS.some((path) =>
+      request.nextUrl.pathname.startsWith(path)
+    );
+
+  if (shouldCheckProfile) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile) {
+      const url = request.nextUrl.clone();
+      const redirectTo = request.nextUrl.pathname + request.nextUrl.search;
+      url.pathname = "/profile/setup";
+      if (redirectTo !== "/") {
+        url.searchParams.set("redirectTo", redirectTo);
+      }
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 

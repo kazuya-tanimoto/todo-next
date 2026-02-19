@@ -28,9 +28,16 @@ export interface ListShare {
   user_id: string;
 }
 
+export interface Profile {
+  id: string;
+  display_name: string;
+  created_at: string;
+}
+
 export interface ListMember {
   user_id: string;
   email: string;
+  display_name: string | null;
 }
 
 export type Theme = "mono" | "natural" | "brutal";

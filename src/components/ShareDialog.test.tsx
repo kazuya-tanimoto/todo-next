@@ -90,9 +90,29 @@ describe("ShareDialog", () => {
     });
   });
 
-  it("displays members when available", async () => {
+  it("displays member display_name when available", async () => {
     mockRpc.mockResolvedValue({
-      data: [{ user_id: "user-2", email: "family@example.com" }],
+      data: [
+        {
+          user_id: "user-2",
+          email: "family@example.com",
+          display_name: "たろう",
+        },
+      ],
+    });
+
+    render(<ShareDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("たろう")).toBeInTheDocument();
+    });
+  });
+
+  it("falls back to email when display_name is null", async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        { user_id: "user-2", email: "family@example.com", display_name: null },
+      ],
     });
 
     render(<ShareDialog {...defaultProps} />);
