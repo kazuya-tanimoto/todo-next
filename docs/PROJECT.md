@@ -209,8 +209,8 @@ npm test              # 実行
 npm run test:watch    # ウォッチモード
 npm run test:coverage # カバレッジ付き
 
-# Vercelデプロイ
-npx vercel --prod
+# Vercelデプロイ（GitHub push で自動デプロイ）
+git push origin main
 
 # Supabase
 supabase db push      # マイグレーション適用
