@@ -5,6 +5,7 @@ interface Props {
   list: List;
   isSelected: boolean;
   isOwner: boolean;
+  ownerName?: string | null;
   isEditing: boolean;
   editingName: string;
   onSelect: (id: string) => void;
@@ -19,6 +20,7 @@ export default function ListItem({
   list,
   isSelected,
   isOwner,
+  ownerName,
   isEditing,
   editingName,
   onSelect,
@@ -60,16 +62,23 @@ export default function ListItem({
             className={`theme-btn px-3 py-1.5 text-sm ${
               !isSelected ? "bg-[var(--card-bg)] text-[var(--fg)]" : ""
             }`}
+            title={
+              !isOwner && ownerName
+                ? `Shared by ${ownerName}`
+                : undefined
+            }
           >
             {!isOwner && (
-              <span
-                className="text-[var(--fg-secondary)] mr-1"
-                title="Shared"
-              >
-                *
+              <span className="text-[var(--fg-secondary)] mr-1">
+                &#x1F91D;
               </span>
             )}
             {list.name}
+            {!isOwner && ownerName && (
+              <span className="text-[var(--fg-secondary)] text-xs ml-1">
+                ({ownerName})
+              </span>
+            )}
           </button>
           <span className="ml-1 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
             <button

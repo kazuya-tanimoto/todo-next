@@ -27,6 +27,8 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
   const onSelectListRef = useRef(onSelectList);
   onSelectListRef.current = onSelectList;
 
+  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
+
   const fetchLists = useCallback(async () => {
     const supabase = createClient();
     const {
@@ -43,6 +45,30 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
       setLists(data);
       if (!selectedListIdRef.current && data.length > 0) {
         onSelectListRef.current(data[0].id);
+      }
+
+      // Fetch owner display names for shared lists
+      if (user) {
+        const sharedOwnerIds = [
+          ...new Set(
+            data
+              .filter((l) => l.user_id !== user.id)
+              .map((l) => l.user_id)
+          ),
+        ];
+        if (sharedOwnerIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, display_name")
+            .in("id", sharedOwnerIds);
+          if (profiles) {
+            const names: Record<string, string> = {};
+            for (const p of profiles) {
+              names[p.id] = p.display_name;
+            }
+            setOwnerNames(names);
+          }
+        }
       }
     }
     setIsLoading(false);
@@ -204,6 +230,9 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
             list={list}
             isSelected={selectedListId === list.id}
             isOwner={isOwner(list)}
+            ownerName={
+              !isOwner(list) ? ownerNames[list.user_id] ?? null : null
+            }
             isEditing={editingId === list.id}
             editingName={editingName}
             onSelect={onSelectList}

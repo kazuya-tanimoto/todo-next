@@ -21,6 +21,7 @@ const mockLists = [
 const mockOrder = vi.fn();
 const mockEq = vi.fn();
 const mockSingle = vi.fn();
+const mockProfilesIn = vi.fn();
 
 const mockChannel = {
   on: vi.fn().mockReturnThis(),
@@ -35,22 +36,31 @@ vi.mock("@/lib/supabase/client", () => ({
         .fn()
         .mockResolvedValue({ data: { user: { id: "user-1" } } }),
     },
-    from: () => ({
-      select: () => ({
-        order: mockOrder,
-      }),
-      insert: () => ({
+    from: (table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            in: mockProfilesIn,
+          }),
+        };
+      }
+      return {
         select: () => ({
-          single: mockSingle,
+          order: mockOrder,
         }),
-      }),
-      update: () => ({
-        eq: mockEq,
-      }),
-      delete: () => ({
-        eq: mockEq,
-      }),
-    }),
+        insert: () => ({
+          select: () => ({
+            single: mockSingle,
+          }),
+        }),
+        update: () => ({
+          eq: mockEq,
+        }),
+        delete: () => ({
+          eq: mockEq,
+        }),
+      };
+    },
     channel: () => mockChannel,
     removeChannel: vi.fn(),
   }),
@@ -60,6 +70,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockOrder.mockResolvedValue({ data: mockLists, error: null });
   mockEq.mockResolvedValue({ error: null });
+  mockProfilesIn.mockResolvedValue({ data: [], error: null });
 
   // happy-dom doesn't have window.confirm, so define it
   window.confirm = vi.fn(() => true);
@@ -185,6 +196,35 @@ describe("ListSelector", () => {
       expect(screen.queryByText("Groceries")).not.toBeInTheDocument();
     });
     expect(onSelectList).toHaveBeenCalledWith("list-2");
+  });
+
+  it("shows owner name on shared lists", async () => {
+    const listsWithShared = [
+      ...mockLists,
+      {
+        id: "list-3",
+        user_id: "user-2",
+        name: "Shared List",
+        created_at: "2026-01-03T00:00:00Z",
+      },
+    ];
+    mockOrder.mockResolvedValue({ data: listsWithShared, error: null });
+    mockProfilesIn.mockResolvedValue({
+      data: [{ id: "user-2", display_name: "Alice" }],
+      error: null,
+    });
+
+    render(
+      <ListSelector selectedListId="list-1" onSelectList={() => {}} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Shared List")).toBeInTheDocument();
+    });
+    expect(screen.getByText("(Alice)")).toBeInTheDocument();
+    expect(
+      screen.getByTitle("Shared by Alice")
+    ).toBeInTheDocument();
   });
 
   it("renders empty state with only the new list form", async () => {
