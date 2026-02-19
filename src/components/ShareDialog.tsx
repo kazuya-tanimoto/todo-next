@@ -208,7 +208,7 @@ export default function ShareDialog({
                   <span className="truncate flex items-center gap-2">
                     {member.display_name ?? member.email}
                     {member.is_owner && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--accent)] text-white">
                         オーナー
                       </span>
                     )}

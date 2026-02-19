@@ -16,6 +16,34 @@ interface Props {
   onShare: (id: string) => void;
 }
 
+function ShareIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+function EditIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </svg>
+  );
+}
+
 export default function ListItem({
   list,
   isSelected,
@@ -78,13 +106,14 @@ export default function ListItem({
         </span>
       )}
       <span>{list.name}</span>
-      <span className="inline-flex items-center gap-0.5 ml-1">
+      <span className="inline-flex items-center gap-1 ml-1">
+        <span className="w-0.5 h-4 bg-current opacity-50 mx-1" aria-hidden="true" />
         <button
           onClick={(e) => {
             e.stopPropagation();
             onShare(list.id);
           }}
-          className="text-xs px-0.5 text-[var(--fg-secondary)] hover:text-[var(--fg)]"
+          className="hover:scale-110 transition-transform"
           aria-label={`Share ${list.name}`}
           title={
             !isOwner && ownerName
@@ -92,7 +121,7 @@ export default function ListItem({
               : undefined
           }
         >
-          &#x1F517;
+          <ShareIcon />
         </button>
         {isOwner && (
           <>
@@ -101,21 +130,20 @@ export default function ListItem({
                 e.stopPropagation();
                 onStartEditing(list);
               }}
-              className="text-xs px-0.5 text-[var(--fg-secondary)] hover:text-[var(--fg)] inline-block"
-              style={{ transform: "scaleX(-1)" }}
+              className="hover:scale-110 transition-transform"
               aria-label={`Rename ${list.name}`}
             >
-              &#x270F;&#xFE0F;
+              <EditIcon />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(list.id);
               }}
-              className="text-xs px-0.5 text-[var(--fg-secondary)] hover:text-red-500"
+              className="hover:scale-110 transition-transform"
               aria-label={`Delete ${list.name}`}
             >
-              &#x1F5D1;&#xFE0F;
+              <TrashIcon />
             </button>
           </>
         )}
