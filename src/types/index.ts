@@ -38,6 +38,7 @@ export interface ListMember {
   user_id: string;
   email: string;
   display_name: string | null;
+  is_owner: boolean;
 }
 
 export type Theme = "mono" | "natural" | "brutal";

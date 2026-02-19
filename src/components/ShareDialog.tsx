@@ -25,8 +25,8 @@ export default function ShareDialog({
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   useEffect(() => {
+    fetchMembers();
     if (isOwner) {
-      fetchMembers();
       fetchInvites();
     }
   }, [listId, isOwner]);
@@ -138,9 +138,9 @@ export default function ShareDialog({
 
         <p className="text-sm text-[var(--fg-secondary)] mb-4">{listName}</p>
 
-        {isOwner ? (
+        {/* Invite link section (owner only) */}
+        {isOwner && (
           <>
-            {/* Invite link section */}
             <div className="mb-4">
               <button
                 onClick={createInviteLink}
@@ -186,40 +186,50 @@ export default function ShareDialog({
                 </ul>
               </div>
             )}
-
-            {/* Members */}
-            <div>
-              <p className="text-sm font-medium text-[var(--fg-secondary)] mb-2">
-                メンバー ({members.length})
-              </p>
-              {members.length === 0 ? (
-                <p className="text-sm text-[var(--fg-secondary)]">
-                  まだメンバーがいません
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {members.map((member) => (
-                    <li
-                      key={member.user_id}
-                      className="flex items-center justify-between text-sm bg-[var(--bg)] p-2 rounded"
-                    >
-                      <span className="truncate">
-                        {member.display_name ?? member.email}
-                      </span>
-                      <button
-                        onClick={() => removeMember(member.user_id)}
-                        className="text-[var(--fg-secondary)] hover:text-red-500 ml-2"
-                        aria-label={`Remove ${member.email}`}
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </>
-        ) : (
+        )}
+
+        {/* Members (visible to everyone) */}
+        <div className="mb-4">
+          <p className="text-sm font-medium text-[var(--fg-secondary)] mb-2">
+            メンバー ({members.length})
+          </p>
+          {members.length === 0 ? (
+            <p className="text-sm text-[var(--fg-secondary)]">
+              まだメンバーがいません
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {members.map((member) => (
+                <li
+                  key={member.user_id}
+                  className="flex items-center justify-between text-sm bg-[var(--bg)] p-2 rounded"
+                >
+                  <span className="truncate flex items-center gap-2">
+                    {member.display_name ?? member.email}
+                    {member.is_owner && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-fg)]">
+                        オーナー
+                      </span>
+                    )}
+                  </span>
+                  {isOwner && !member.is_owner && (
+                    <button
+                      onClick={() => removeMember(member.user_id)}
+                      className="text-[var(--fg-secondary)] hover:text-red-500 ml-2"
+                      aria-label={`Remove ${member.email}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Leave button (non-owner only) */}
+        {!isOwner && (
           <button
             onClick={handleLeave}
             className="theme-btn px-4 py-2 text-sm w-full text-red-500"

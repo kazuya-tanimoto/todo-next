@@ -97,6 +97,7 @@ describe("ShareDialog", () => {
           user_id: "user-2",
           email: "family@example.com",
           display_name: "たろう",
+          is_owner: false,
         },
       ],
     });
@@ -111,7 +112,7 @@ describe("ShareDialog", () => {
   it("falls back to email when display_name is null", async () => {
     mockRpc.mockResolvedValue({
       data: [
-        { user_id: "user-2", email: "family@example.com", display_name: null },
+        { user_id: "user-2", email: "family@example.com", display_name: null, is_owner: false },
       ],
     });
 
@@ -122,6 +123,26 @@ describe("ShareDialog", () => {
     });
   });
 
+  it("shows owner badge for owner member", async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        { user_id: "user-1", email: "owner@example.com", display_name: "田中", is_owner: true },
+        { user_id: "user-2", email: "member@example.com", display_name: "佐藤", is_owner: false },
+      ],
+    });
+
+    render(<ShareDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("田中")).toBeInTheDocument();
+      expect(screen.getByText("佐藤")).toBeInTheDocument();
+    });
+    // Owner badge should appear exactly once
+    const badges = screen.getAllByText("オーナー", { exact: true });
+    // "オーナー" appears in badge only (dialog title is "共有設定" for owner)
+    expect(badges.length).toBe(1);
+  });
+
   it("shows empty member message when no members", async () => {
     render(<ShareDialog {...defaultProps} />);
     await waitFor(() => {
@@ -129,12 +150,26 @@ describe("ShareDialog", () => {
     });
   });
 
-  it("shows leave button for non-owner", () => {
+  it("shows member list and leave button for non-owner", async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        { user_id: "user-owner", email: "owner@example.com", display_name: "オーナーさん", is_owner: true },
+        { user_id: "user-1", email: "me@example.com", display_name: "自分", is_owner: false },
+      ],
+    });
+
     render(<ShareDialog {...defaultProps} isOwner={false} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("オーナーさん")).toBeInTheDocument();
+      expect(screen.getByText("自分")).toBeInTheDocument();
+    });
     expect(screen.getByText("共有リスト")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /離脱/ })
     ).toBeInTheDocument();
+    // Non-owner should not see remove buttons
+    expect(screen.queryByLabelText(/Remove/)).not.toBeInTheDocument();
   });
 
   it("calls onClose when close button clicked", async () => {
