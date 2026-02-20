@@ -11,7 +11,6 @@
 シンプルなTODOアプリが完成し、Vercelにデプロイ済み。
 Supabase基盤（認証・DB・Realtime同期）が稼働中。
 
-- **本番URL**: https://REDACTED_PRODUCTION_URL
 - **GitHub**: https://github.com/kazuya-tanimoto/todo-next
 
 ### 技術スタック
@@ -33,11 +32,13 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - ニックネーム登録（profilesテーブル、初回ログイン時に設定、後から変更可能）
 
 ### Supabase設定状況
-- **プロジェクト**: `REDACTED_SUPABASE_REF`（todo-next-v2）
 - **リージョン**: ap-northeast-1 (東京)
 - **マイグレーション**: 6ファイル（適用済み）
 - **Google OAuth**: 設定済み
 - **環境変数**: `.env.local` に設定（gitignore対象）
+  - ローカル開発: ローカルSupabase（`supabase start`）がデフォルト
+  - 本番: Vercel環境変数で設定（ダッシュボードで確認可能）
+  - `.env.local`にリモート（本番）の値を設定しないこと
 - **Realtime**: 有効（todos, lists, list_shares テーブル。本番E2E検証済み）
 - **注意**: Vercel環境変数を設定する際、`echo`等で末尾改行が混入しないよう`printf`を使うこと
 
@@ -175,7 +176,7 @@ RLSポリシーも同マイグレーションに実装済み:
 9. [x] リスト共有機能（招待リンク方式）
 10. [x] コンポーネント分割（TodoItem, TodoList, ListItem抽出済み。残りは現状のサイズで適切）
 11. [x] リアルタイム同期（Supabase Realtime — todos, lists, list_shares）
-12. [x] 新Supabaseプロジェクトへの移行（`REDACTED_SUPABASE_REF` に移行完了、旧プロジェクト削除済み）
+12. [x] 新Supabaseプロジェクトへの移行（移行完了、旧プロジェクト削除済み）
 13. [x] ライブラリ見直し・リファクタ → PBI-014~016に分解して [PBI.md](PBI.md) に移行
 
 ---

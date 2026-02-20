@@ -59,12 +59,11 @@ vi.mock("@/lib/supabase/client", () => ({
 #### 手順
 
 1. `supabase start` でローカルSupabaseを起動
-2. `.env.local` をローカルSupabaseのURL・キーに切り替え（リモートは `.env.local.remote` にバックアップ）
-3. Supabase Admin APIでテストユーザーを作成（email+password）
-4. パスワードログインでセッションを取得し、`sb-127-auth-token` クッキーを `base64-` + base64url エンコードで生成
-5. Playwright `context.addCookies` でクッキーをセット（ドメイン: `localhost`）
-6. `npm run dev` で起動したアプリに対してブラウザ操作で検証
-7. 検証後: `.env.local` をリモートに復元、`supabase stop`
+2. Supabase Admin APIでテストユーザーを作成（email+password）
+3. パスワードログインでセッションを取得し、`sb-127-auth-token` クッキーを `base64-` + base64url エンコードで生成
+4. Playwright `context.addCookies` でクッキーをセット（ドメイン: `localhost`）
+5. `npm run dev` で起動したアプリに対してブラウザ操作で検証
+6. 検証後: `supabase stop`
 
 #### クッキー仕様
 
