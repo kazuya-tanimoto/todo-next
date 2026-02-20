@@ -35,10 +35,10 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - **リージョン**: ap-northeast-1 (東京)
 - **マイグレーション**: 6ファイル（適用済み）
 - **Google OAuth**: 設定済み
-- **環境変数**: `.env.local` に設定（gitignore対象）
+- **環境変数**: `.env` に設定（gitignore対象）
   - ローカル開発: ローカルSupabase（`supabase start`）がデフォルト
   - 本番: Vercel環境変数で設定（ダッシュボードで確認可能）
-  - `.env.local`にリモート（本番）の値を設定しないこと
+  - `.env`にリモート（本番）の値を設定しないこと
 - **Realtime**: 有効（todos, lists, list_shares テーブル。本番E2E検証済み）
 - **注意**: Vercel環境変数を設定する際、`echo`等で末尾改行が混入しないよう`printf`を使うこと
 
@@ -91,8 +91,8 @@ supabase/
     ├── 20260215080000_fix_realtime_rls.sql  # Realtime + RLS互換性修正
     └── 20260218000000_add_profiles.sql  # profilesテーブル + get_list_members更新
 
-.env.local                 # 環境変数（gitignore対象）
-.env.local.example         # 環境変数テンプレート
+.env                       # 環境変数（gitignore対象）
+.env.example               # 環境変数テンプレート
 vitest.config.ts           # テスト設定
 ```
 
