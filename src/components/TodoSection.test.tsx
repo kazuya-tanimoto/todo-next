@@ -20,9 +20,36 @@ const mockTodos = [
   },
 ];
 
-const mockOrder = vi.fn();
-const mockEq = vi.fn();
-const mockSingle = vi.fn();
+const mockTags = [
+  {
+    id: "tag-1",
+    list_id: "list-1",
+    name: "Groceries",
+    color: "green",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "tag-2",
+    list_id: "list-1",
+    name: "Urgent",
+    color: "red",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+];
+
+// Terminal mocks for todos
+const mockTodosOrder = vi.fn();
+const mockTodosEq = vi.fn();
+const mockTodosSingle = vi.fn();
+
+// Terminal mocks for tags
+const mockTagsOrder = vi.fn();
+const mockTagsSingle = vi.fn();
+const mockTagsEq = vi.fn();
+
+// Terminal mock for todo_tags
+const mockTodoTagsIn = vi.fn();
+const mockTodoTagsInsert = vi.fn();
 
 const mockChannel = {
   on: vi.fn().mockReturnThis(),
@@ -32,24 +59,62 @@ const mockChannel = {
 vi.mock("@/lib/supabase/client", () => ({
   ensureRealtimeAuth: vi.fn().mockResolvedValue(undefined),
   createClient: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          order: mockOrder,
-        }),
-      }),
-      insert: () => ({
-        select: () => ({
-          single: mockSingle,
-        }),
-      }),
-      update: () => ({
-        eq: mockEq,
-      }),
-      delete: () => ({
-        eq: mockEq,
-      }),
-    }),
+    from: (table: string) => {
+      if (table === "todos") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: mockTodosOrder,
+            }),
+          }),
+          insert: () => ({
+            select: () => ({
+              single: mockTodosSingle,
+            }),
+          }),
+          update: () => ({
+            eq: mockTodosEq,
+          }),
+          delete: () => ({
+            eq: mockTodosEq,
+          }),
+        };
+      }
+      if (table === "tags") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: mockTagsOrder,
+            }),
+          }),
+          insert: () => ({
+            select: () => ({
+              single: mockTagsSingle,
+            }),
+          }),
+          update: () => ({
+            eq: () => ({
+              select: () => ({
+                single: mockTagsSingle,
+              }),
+            }),
+          }),
+          delete: () => ({
+            eq: mockTagsEq,
+          }),
+        };
+      }
+      if (table === "todo_tags") {
+        return {
+          select: () => ({
+            in: mockTodoTagsIn,
+            eq: () => ({ then: vi.fn() }),
+          }),
+          insert: mockTodoTagsInsert,
+        };
+      }
+      return {};
+    },
     channel: () => mockChannel,
     removeChannel: vi.fn(),
   }),
@@ -57,8 +122,13 @@ vi.mock("@/lib/supabase/client", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockOrder.mockResolvedValue({ data: mockTodos, error: null });
-  mockEq.mockResolvedValue({ error: null });
+  mockTodosOrder.mockResolvedValue({ data: mockTodos, error: null });
+  mockTodosEq.mockResolvedValue({ error: null });
+  mockTagsOrder.mockResolvedValue({ data: [], error: null });
+  mockTagsEq.mockResolvedValue({ error: null });
+  mockTagsSingle.mockResolvedValue({ data: null, error: null });
+  mockTodoTagsIn.mockResolvedValue({ data: [], error: null });
+  mockTodoTagsInsert.mockResolvedValue({ error: null });
 });
 
 describe("TodoSection", () => {
@@ -71,7 +141,7 @@ describe("TodoSection", () => {
   });
 
   it("renders empty state when list has no todos", async () => {
-    mockOrder.mockResolvedValue({ data: [], error: null });
+    mockTodosOrder.mockResolvedValue({ data: [], error: null });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -105,7 +175,7 @@ describe("TodoSection", () => {
       completed: false,
       created_at: "2026-01-03T00:00:00Z",
     };
-    mockSingle.mockResolvedValue({ data: newTodo, error: null });
+    mockTodosSingle.mockResolvedValue({ data: newTodo, error: null });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -126,7 +196,7 @@ describe("TodoSection", () => {
 
   it("can toggle a todo", async () => {
     const user = userEvent.setup();
-    mockEq.mockResolvedValue({ error: null });
+    mockTodosEq.mockResolvedValue({ error: null });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -135,7 +205,6 @@ describe("TodoSection", () => {
     });
 
     const checkboxes = screen.getAllByRole("checkbox");
-    // First checkbox is "Buy milk" (uncompleted)
     await user.click(checkboxes[0]);
 
     await waitFor(() => {
@@ -145,7 +214,7 @@ describe("TodoSection", () => {
 
   it("can delete a todo", async () => {
     const user = userEvent.setup();
-    mockEq.mockResolvedValue({ error: null });
+    mockTodosEq.mockResolvedValue({ error: null });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -167,9 +236,9 @@ describe("TodoSection", () => {
 
   it("can clear completed todos", async () => {
     const user = userEvent.setup();
-    // clearCompleted calls delete().eq("list_id", ...).eq("completed", true)
-    // The mock chain: delete() -> eq(mockEq) -> eq needs to return { error: null }
-    mockEq.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    mockTodosEq.mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -186,5 +255,51 @@ describe("TodoSection", () => {
     });
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
     expect(screen.getByText("0/1 completed")).toBeInTheDocument();
+  });
+
+  it("renders tags in TagFilter when tags exist", async () => {
+    mockTagsOrder.mockResolvedValue({ data: mockTags, error: null });
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      // Tags appear in both TagFilter and TagSelector, use getAllByText
+      expect(screen.getAllByText("Groceries").length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.getAllByText("Urgent").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("filters todos by selected tag", async () => {
+    const user = userEvent.setup();
+    mockTagsOrder.mockResolvedValue({ data: mockTags, error: null });
+    mockTodoTagsIn.mockResolvedValue({
+      data: [{ todo_id: "todo-1", tag_id: "tag-1" }],
+      error: null,
+    });
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+    });
+
+    // Click the first "Groceries" button (in TagFilter, not TagSelector)
+    const groceryButtons = screen.getAllByText("Groceries");
+    await user.click(groceryButtons[0]);
+
+    await waitFor(() => {
+      // Only "Buy milk" has the "Groceries" tag
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+      expect(screen.queryByText("Walk the dog")).not.toBeInTheDocument();
+    });
+
+    // Click again to deselect — shows all todos again
+    const groceryButtonsAfter = screen.getAllByText("Groceries");
+    await user.click(groceryButtonsAfter[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+      expect(screen.getByText("Walk the dog")).toBeInTheDocument();
+    });
   });
 });

@@ -11,6 +11,15 @@ export interface Todo {
   text: string;
   completed: boolean;
   created_at: string;
+  tags?: Tag[];
+}
+
+export interface Tag {
+  id: string;
+  list_id: string;
+  name: string;
+  color: string;
+  created_at: string;
 }
 
 export interface InviteToken {

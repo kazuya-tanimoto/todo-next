@@ -30,6 +30,7 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - Google OAuthログイン/ログアウト
 - 認証ミドルウェア（未ログイン → /login リダイレクト、招待リンクへの自動リダイレクト）
 - ニックネーム登録（profilesテーブル、初回ログイン時に設定、後から変更可能）
+- タグ機能（リスト単位のタグ作成・編集・削除、Todo作成時のタグ付与、タグフィルタリング）
 
 ### Supabase設定状況
 - **リージョン**: ap-northeast-1 (東京)
@@ -39,7 +40,7 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
   - ローカル開発: ローカルSupabase（`supabase start`）がデフォルト
   - 本番: Vercel環境変数で設定（ダッシュボードで確認可能）
   - `.env`にリモート（本番）の値を設定しないこと
-- **Realtime**: 有効（todos, lists, list_shares テーブル。本番E2E検証済み）
+- **Realtime**: 有効（todos, lists, list_shares, tags, todo_tags テーブル。本番E2E検証済み）
 - **注意**: Vercel環境変数を設定する際、`echo`等で末尾改行が混入しないよう`printf`を使うこと
 
 ### ファイル構成
@@ -66,16 +67,21 @@ src/
 │   ├── ListSelector.test.tsx  # リストテスト（8件）
 │   ├── ShareDialog.tsx        # 共有管理ダイアログ
 │   ├── ShareDialog.test.tsx   # 共有テスト（8件）
+│   ├── TagFilter.tsx          # タグフィルタ（CRUD + フィルタリング）
+│   ├── TagFilter.test.tsx     # タグフィルタテスト（8件）
+│   ├── TagSelector.tsx        # Todo追加時のタグ選択
+│   ├── TagSelector.test.tsx   # タグ選択テスト（4件）
 │   ├── ThemeSwitcher.tsx      # テーマ切り替え
 │   ├── ThemeSwitcher.test.tsx # テーマテスト（2件）
-│   ├── TodoSection.tsx        # TODO管理（Supabase）
-│   └── TodoSection.test.tsx   # TODOテスト（7件）
+│   ├── TodoSection.tsx        # TODO管理（Supabase + タグ）
+│   └── TodoSection.test.tsx   # TODOテスト（9件）
 ├── lib/
-│   └── supabase/
-│       ├── client.ts     # ブラウザ用Supabaseクライアント
-│       └── server.ts     # サーバー用Supabaseクライアント
+│   ├── supabase/
+│   │   ├── client.ts     # ブラウザ用Supabaseクライアント
+│   │   └── server.ts     # サーバー用Supabaseクライアント
+│   └── tagColors.ts      # タグカラー定数（8色プリセット）
 ├── types/
-│   └── index.ts          # 共有型定義（List, Todo, InviteToken, ListShare, Theme）
+│   └── index.ts          # 共有型定義（List, Todo, Tag, InviteToken, ListShare, Theme）
 ├── middleware.ts          # 認証ガード + セッション更新 + redirectTo対応
 └── test/
     └── setup.ts          # テストセットアップ（jest-dom）
@@ -89,7 +95,9 @@ supabase/
     ├── 20260214050855_enable_realtime.sql  # Realtime有効化
     ├── 20260214072513_add_get_invite_info_rpc.sql  # 招待情報RPC
     ├── 20260215080000_fix_realtime_rls.sql  # Realtime + RLS互換性修正
-    └── 20260218000000_add_profiles.sql  # profilesテーブル + get_list_members更新
+    ├── 20260218000000_add_profiles.sql  # profilesテーブル + get_list_members更新
+    ├── 20260219000000_pbi002_visible_members.sql  # 共有メンバー可視化
+    └── 20260220000000_add_tags.sql  # タグ + todo_tags + RLS + Realtime
 
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート
