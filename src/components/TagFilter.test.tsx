@@ -83,36 +83,41 @@ describe("TagFilter", () => {
     expect(onCreateTag).toHaveBeenCalledWith("New Tag", "blue");
   });
 
-  it("shows context menu on right-click", async () => {
+  it("shows edit and delete buttons when Edit mode is toggled", async () => {
     const user = userEvent.setup();
     render(<TagFilter {...defaultProps} />);
 
-    const tagPill = screen.getByText("Groceries");
-    await user.pointer({ target: tagPill, keys: "[MouseRight]" });
+    // Click the Edit mode toggle button
+    await user.click(screen.getByRole("button", { name: /Edit/i }));
 
-    expect(screen.getByText("Edit")).toBeInTheDocument();
-    expect(screen.getByText("Delete")).toBeInTheDocument();
+    // Now the tags should be rendered as complex elements with title tooltips
+    expect(screen.getAllByTitle("Edit tag")).toHaveLength(2);
+    expect(screen.getAllByTitle("Delete tag")).toHaveLength(2);
   });
 
-  it("calls onDeleteTag when Delete is clicked in context menu", async () => {
+  it("calls onDeleteTag when Delete is clicked in edit mode", async () => {
     const user = userEvent.setup();
     const onDeleteTag = vi.fn().mockResolvedValue(undefined);
     render(<TagFilter {...defaultProps} onDeleteTag={onDeleteTag} />);
 
-    const tagPill = screen.getByText("Groceries");
-    await user.pointer({ target: tagPill, keys: "[MouseRight]" });
-    await user.click(screen.getByText("Delete"));
+    await user.click(screen.getByRole("button", { name: /Edit/i }));
+
+    // There are multiple delete buttons (one for each tag). Let's click the first one.
+    const deleteButtons = screen.getAllByTitle("Delete tag");
+    await user.click(deleteButtons[0]);
 
     expect(onDeleteTag).toHaveBeenCalledWith("tag-1");
   });
 
-  it("shows edit form when Edit is clicked in context menu", async () => {
+  it("shows edit form when Edit tag button is clicked in edit mode", async () => {
     const user = userEvent.setup();
     render(<TagFilter {...defaultProps} />);
 
-    const tagPill = screen.getByText("Groceries");
-    await user.pointer({ target: tagPill, keys: "[MouseRight]" });
-    await user.click(screen.getByText("Edit"));
+    await user.click(screen.getByRole("button", { name: /Edit/i }));
+
+    // Click the edit button for the first tag
+    const editButtons = screen.getAllByTitle("Edit tag");
+    await user.click(editButtons[0]);
 
     // Edit form should show with pre-filled value
     const input = screen.getByDisplayValue("Groceries");

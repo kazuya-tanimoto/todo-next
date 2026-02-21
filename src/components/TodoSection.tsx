@@ -381,8 +381,8 @@ export default function TodoSection({ selectedListId }: Props) {
       selectedTagIds.size === 0
         ? todos
         : todos.filter((t) =>
-            t.tags?.some((tag) => selectedTagIds.has(tag.id))
-          ),
+          t.tags?.some((tag) => selectedTagIds.has(tag.id))
+        ),
     [todos, selectedTagIds]
   );
 
@@ -407,6 +407,10 @@ export default function TodoSection({ selectedListId }: Props) {
       </p>
 
       {/* Tag Filter */}
+      <div className="mb-2 text-sm font-medium text-[var(--fg-secondary)] flex items-center gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        フィルター & タグ管理
+      </div>
       <TagFilter
         tags={tags}
         selectedTagIds={selectedTagIds}
@@ -434,6 +438,12 @@ export default function TodoSection({ selectedListId }: Props) {
             Add
           </button>
         </div>
+        {tags.length > 0 && (
+          <div className="mt-3 mb-0.5 text-sm font-medium text-[var(--fg-secondary)] flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            追加するタグ
+          </div>
+        )}
         <TagSelector
           tags={tags}
           selectedTagIds={pendingTagIds}

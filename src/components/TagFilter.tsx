@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { Tag } from "@/types";
 import { TAG_COLORS, TAG_COLOR_KEYS, TagColorKey } from "@/lib/tagColors";
 
@@ -30,48 +30,10 @@ export default function TagFilter({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState<TagColorKey>("blue");
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState<TagColorKey>("blue");
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-
-  const closeContextMenu = useCallback(() => setContextMenu(null), []);
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handleClick = (e: MouseEvent) => {
-      if (
-        contextMenuRef.current &&
-        !contextMenuRef.current.contains(e.target as Node)
-      ) {
-        closeContextMenu();
-      }
-    };
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, [contextMenu, closeContextMenu]);
-
-  const handleContextMenu = (e: React.MouseEvent, tagId: string) => {
-    e.preventDefault();
-    setContextMenu({ tagId, x: e.clientX, y: e.clientY });
-  };
-
-  const handlePointerDown = (tagId: string, e: React.PointerEvent) => {
-    if (e.pointerType !== "touch") return;
-    longPressTimer.current = setTimeout(() => {
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      setContextMenu({ tagId, x: rect.left, y: rect.bottom });
-    }, 500);
-  };
-
-  const handlePointerUp = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +48,6 @@ export default function TagFilter({
     setEditingTagId(tag.id);
     setEditName(tag.name);
     setEditColor(tag.color as TagColorKey);
-    closeContextMenu();
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -97,7 +58,6 @@ export default function TagFilter({
   };
 
   const handleDelete = async (tagId: string) => {
-    closeContextMenu();
     await onDeleteTag(tagId);
   };
 
@@ -134,14 +94,37 @@ export default function TagFilter({
                 ✕
               </button>
             </form>
+          ) : isEditMode ? (
+            <div key={tag.id} className="flex items-stretch">
+              <button
+                onClick={() => handleStartEdit(tag)}
+                className="px-3 py-1 text-xs font-medium rounded-l-full border-y border-l transition-colors flex items-center gap-1.5"
+                style={{
+                  backgroundColor: "transparent",
+                  color: TAG_COLORS[tag.color as TagColorKey],
+                  borderColor: TAG_COLORS[tag.color as TagColorKey],
+                }}
+                title="Edit tag"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                {tag.name}
+              </button>
+              <button
+                onClick={() => handleDelete(tag.id)}
+                className="px-2 py-1 text-xs border-y border-r rounded-r-full hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors flex items-center justify-center"
+                style={{
+                  borderColor: TAG_COLORS[tag.color as TagColorKey],
+                  color: TAG_COLORS[tag.color as TagColorKey],
+                }}
+                title="Delete tag"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
           ) : (
             <button
               key={tag.id}
               onClick={() => onToggle(tag.id)}
-              onContextMenu={(e) => handleContextMenu(e, tag.id)}
-              onPointerDown={(e) => handlePointerDown(tag.id, e)}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
               className="px-3 py-1 text-xs font-medium rounded-full border transition-colors"
               style={
                 selectedTagIds.has(tag.id)
@@ -200,39 +183,39 @@ export default function TagFilter({
             </button>
           </form>
         ) : (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="px-2 py-1 text-xs text-[var(--fg-secondary)] hover:text-[var(--fg)] border border-dashed border-[var(--border)] rounded-full transition-colors"
-            aria-label="Add tag"
-          >
-            + Tag
-          </button>
+          <div className="flex items-center gap-2 ml-1">
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="px-2 py-1 text-xs text-[var(--fg-secondary)] hover:text-[var(--fg)] border border-dashed border-[var(--border)] rounded-full transition-colors"
+              aria-label="Add tag"
+            >
+              + Tag
+            </button>
+            {tags.length > 0 && (
+              <button
+                onClick={() => setIsEditMode(!isEditMode)}
+                className={`px-2 py-1 text-xs rounded-full border transition-colors flex items-center gap-1 ${
+                  isEditMode
+                    ? "bg-[var(--fg)] text-[var(--bg)] border-[var(--fg)]"
+                    : "text-[var(--fg-secondary)] border-[var(--border)] hover:text-[var(--fg)]"
+                }`}
+              >
+                {isEditMode ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Done
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    Edit
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         )}
       </div>
-
-      {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          className="fixed z-50 bg-[var(--card-bg)] border border-[var(--border)] rounded shadow-lg py-1"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-        >
-          <button
-            onClick={() => {
-              const tag = tags.find((t) => t.id === contextMenu.tagId);
-              if (tag) handleStartEdit(tag);
-            }}
-            className="block w-full text-left px-4 py-2 text-sm hover:bg-[var(--bg-secondary)]"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => handleDelete(contextMenu.tagId)}
-            className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-[var(--bg-secondary)]"
-          >
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
 }
