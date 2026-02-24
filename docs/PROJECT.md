@@ -208,15 +208,15 @@ AIが紫グラデーションを多用する傾向があるため、意識的に
 
 ```bash
 # 開発サーバー
-npm run dev
+yarn dev
 
 # ビルド
-npm run build
+yarn build
 
 # テスト
-npm test              # 実行
-npm run test:watch    # ウォッチモード
-npm run test:coverage # カバレッジ付き
+yarn test              # 実行
+yarn test:watch        # ウォッチモード
+yarn test:coverage     # カバレッジ付き
 
 # Vercelデプロイ（GitHub push で自動デプロイ）
 git push origin main
