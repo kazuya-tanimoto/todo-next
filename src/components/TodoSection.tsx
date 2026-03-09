@@ -127,11 +127,12 @@ export default function TodoSection({ selectedListId }: Props) {
               });
             } else if (payload.eventType === "UPDATE") {
               const updated = payload.new as Todo;
-              setTodos((prev) =>
-                prev.map((t) =>
+              setTodos((prev) => {
+                const next = prev.map((t) =>
                   t.id === updated.id ? { ...t, ...updated } : t
-                )
-              );
+                );
+                return next.sort((a, b) => a.position - b.position);
+              });
             } else if (payload.eventType === "DELETE") {
               const deleted = payload.old as { id: string };
               setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
