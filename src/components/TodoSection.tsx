@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
-import { Todo, Tag } from "@/types";
+import { Todo, Tag, SortMode } from "@/types";
 import { TagColorKey } from "@/lib/tagColors";
 import TodoList from "./TodoList";
 import TagFilter from "./TagFilter";
 import TagSelector from "./TagSelector";
+import SortSelector from "./SortSelector";
 
 interface Props {
   selectedListId: string | null;
@@ -19,6 +20,7 @@ export default function TodoSection({ selectedListId }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [pendingTagIds, setPendingTagIds] = useState<string[]>([]);
+  const [sortMode, setSortMode] = useState<SortMode>("manual");
 
   useEffect(() => {
     if (!selectedListId) {
@@ -27,6 +29,13 @@ export default function TodoSection({ selectedListId }: Props) {
       setSelectedTagIds(new Set());
       setPendingTagIds([]);
       return;
+    }
+
+    const savedSort = localStorage.getItem(`sortMode:${selectedListId}`);
+    if (savedSort && ["manual", "created", "name", "completed"].includes(savedSort)) {
+      setSortMode(savedSort as SortMode);
+    } else {
+      setSortMode("manual");
     }
 
     let ignore = false;
@@ -76,7 +85,7 @@ export default function TodoSection({ selectedListId }: Props) {
           .from("todos")
           .select("*")
           .eq("list_id", selectedListId)
-          .order("created_at", { ascending: false }),
+          .order("position", { ascending: true }),
         supabase
           .from("tags")
           .select("*")
@@ -110,11 +119,12 @@ export default function TodoSection({ selectedListId }: Props) {
           (payload) => {
             if (payload.eventType === "INSERT") {
               const newTodo = { ...(payload.new as Todo), tags: [] };
-              setTodos((prev) =>
-                prev.some((t) => t.id === newTodo.id)
-                  ? prev
-                  : [newTodo, ...prev]
-              );
+              setTodos((prev) => {
+                if (prev.some((t) => t.id === newTodo.id)) return prev;
+                const idx = prev.findIndex((t) => t.position > newTodo.position);
+                if (idx === -1) return [...prev, newTodo];
+                return [...prev.slice(0, idx), newTodo, ...prev.slice(idx)];
+              });
             } else if (payload.eventType === "UPDATE") {
               const updated = payload.new as Todo;
               setTodos((prev) =>
@@ -239,9 +249,13 @@ export default function TodoSection({ selectedListId }: Props) {
     if (!inputValue.trim() || !selectedListId) return;
 
     const supabase = createClient();
+    const minPosition = todos.length > 0
+      ? Math.min(...todos.map((t) => t.position))
+      : 1000;
+    const newPosition = minPosition - 1000;
     const { data, error } = await supabase
       .from("todos")
-      .insert({ list_id: selectedListId, text: inputValue.trim() })
+      .insert({ list_id: selectedListId, text: inputValue.trim(), position: newPosition })
       .select()
       .single();
 
@@ -376,6 +390,61 @@ export default function TodoSection({ selectedListId }: Props) {
     );
   };
 
+  const handleSortModeChange = (mode: SortMode) => {
+    setSortMode(mode);
+    if (selectedListId) {
+      localStorage.setItem(`sortMode:${selectedListId}`, mode);
+    }
+  };
+
+  const reorderTodo = async (activeId: string, overId: string) => {
+    if (activeId === overId) return;
+
+    const oldIndex = todos.findIndex((t) => t.id === activeId);
+    const newIndex = todos.findIndex((t) => t.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Calculate new position based on neighbors
+    const reordered = [...todos];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    let newPosition: number;
+    if (newIndex === 0) {
+      newPosition = reordered[1] ? reordered[1].position - 1000 : 0;
+    } else if (newIndex === reordered.length - 1) {
+      newPosition = reordered[newIndex - 1].position + 1000;
+    } else {
+      const before = reordered[newIndex - 1].position;
+      const after = reordered[newIndex + 1].position;
+      newPosition = Math.floor((before + after) / 2);
+      // If gap is too small, rebalance all positions
+      if (newPosition === before || newPosition === after) {
+        const rebalanced = reordered.map((t, i) => ({
+          ...t,
+          position: (i + 1) * 1000,
+        }));
+        setTodos(rebalanced);
+        const supabase = createClient();
+        await Promise.all(
+          rebalanced.map((t) =>
+            supabase.from("todos").update({ position: t.position }).eq("id", t.id)
+          )
+        );
+        return;
+      }
+    }
+
+    // Optimistic update
+    const updated = reordered.map((t) =>
+      t.id === activeId ? { ...t, position: newPosition } : t
+    );
+    setTodos(updated);
+
+    const supabase = createClient();
+    await supabase.from("todos").update({ position: newPosition }).eq("id", activeId);
+  };
+
   const filteredTodos = useMemo(
     () =>
       selectedTagIds.size === 0
@@ -385,6 +454,26 @@ export default function TodoSection({ selectedListId }: Props) {
         ),
     [todos, selectedTagIds]
   );
+
+  const sortedTodos = useMemo(() => {
+    if (sortMode === "manual") return filteredTodos;
+    const sorted = [...filteredTodos];
+    switch (sortMode) {
+      case "created":
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case "name":
+        sorted.sort((a, b) => a.text.localeCompare(b.text, "ja"));
+        break;
+      case "completed":
+        sorted.sort((a, b) => {
+          if (a.completed !== b.completed) return a.completed ? 1 : -1;
+          return a.position - b.position;
+        });
+        break;
+    }
+    return sorted;
+  }, [filteredTodos, sortMode]);
 
   const completedCount = todos.filter((t) => t.completed).length;
   const totalCount = todos.length;
@@ -420,6 +509,9 @@ export default function TodoSection({ selectedListId }: Props) {
         onDeleteTag={deleteTag}
       />
 
+      {/* Sort Selector */}
+      <SortSelector sortMode={sortMode} onChange={handleSortModeChange} />
+
       {/* Input Form */}
       <form onSubmit={addTodo} className="mb-8">
         <div className="flex gap-3">
@@ -453,10 +545,12 @@ export default function TodoSection({ selectedListId }: Props) {
 
       {/* Todo List */}
       <TodoList
-        todos={filteredTodos}
+        todos={sortedTodos}
         isLoading={isLoading}
+        sortMode={sortMode}
         onToggle={toggleTodo}
         onDelete={deleteTodo}
+        onReorder={reorderTodo}
       />
 
       {/* Footer */}

@@ -1,19 +1,41 @@
-import { Todo } from "@/types";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Todo, SortMode } from "@/types";
 import TodoItem from "./TodoItem";
 
 interface Props {
   todos: Todo[];
   isLoading: boolean;
+  sortMode: SortMode;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onReorder: (activeId: string, overId: string) => void;
 }
 
 export default function TodoList({
   todos,
   isLoading,
+  sortMode,
   onToggle,
   onDelete,
+  onReorder,
 }: Props) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
+
   if (isLoading) {
     return (
       <div className="py-8 text-center text-[var(--fg-secondary)]">
@@ -33,16 +55,41 @@ export default function TodoList({
     );
   }
 
+  const isDraggable = sortMode === "manual";
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      onReorder(active.id as string, over.id as string);
+    }
+  };
+
+  const items = todos.map((todo) => (
+    <TodoItem
+      key={todo.id}
+      todo={todo}
+      isDraggable={isDraggable}
+      onToggle={onToggle}
+      onDelete={onDelete}
+    />
+  ));
+
+  if (!isDraggable) {
+    return <div className="space-y-3">{items}</div>;
+  }
+
   return (
-    <div className="space-y-3">
-      {todos.map((todo) => (
-        <TodoItem
-          key={todo.id}
-          todo={todo}
-          onToggle={onToggle}
-          onDelete={onDelete}
-        />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={todos.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-3">{items}</div>
+      </SortableContext>
+    </DndContext>
   );
 }

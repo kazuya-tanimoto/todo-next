@@ -11,8 +11,11 @@ export interface Todo {
   text: string;
   completed: boolean;
   created_at: string;
+  position: number;
   tags?: Tag[];
 }
+
+export type SortMode = "manual" | "created" | "name" | "completed";
 
 export interface Tag {
   id: string;

@@ -1,19 +1,63 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Todo } from "@/types";
 import { TAG_COLORS, TagColorKey } from "@/lib/tagColors";
 
 interface Props {
   todo: Todo;
+  isDraggable: boolean;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
 }
 
-export default function TodoItem({ todo, onToggle, onDelete }: Props) {
+export default function TodoItem({ todo, isDraggable, onToggle, onDelete }: Props) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id, disabled: !isDraggable });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : undefined,
+  };
+
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={`theme-card group flex items-center gap-4 p-4 ${
         todo.completed ? "todo-completed" : ""
       }`}
     >
+      {isDraggable && (
+        <button
+          type="button"
+          className="drag-handle touch-none cursor-grab active:cursor-grabbing text-[var(--fg-secondary)] hover:text-[var(--fg-primary)]"
+          aria-label="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <circle cx="9" cy="6" r="1.5" />
+            <circle cx="15" cy="6" r="1.5" />
+            <circle cx="9" cy="12" r="1.5" />
+            <circle cx="15" cy="12" r="1.5" />
+            <circle cx="9" cy="18" r="1.5" />
+            <circle cx="15" cy="18" r="1.5" />
+          </svg>
+        </button>
+      )}
       <input
         type="checkbox"
         checked={todo.completed}
