@@ -11,6 +11,7 @@ const mockTodos = [
     completed: false,
     created_at: "2026-01-02T00:00:00Z",
     position: 1000,
+    description: null,
   },
   {
     id: "todo-2",
@@ -19,6 +20,7 @@ const mockTodos = [
     completed: true,
     created_at: "2026-01-01T00:00:00Z",
     position: 2000,
+    description: null,
   },
 ];
 
@@ -177,6 +179,7 @@ describe("TodoSection", () => {
       completed: false,
       created_at: "2026-01-03T00:00:00Z",
       position: 0,
+      description: null,
     };
     mockTodosSingle.mockResolvedValue({ data: newTodo, error: null });
 

@@ -21,6 +21,7 @@ interface Props {
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
   onReorder: (activeId: string, overId: string) => void;
+  onUpdateDescription: (id: string, description: string) => void;
 }
 
 export default function TodoList({
@@ -30,6 +31,7 @@ export default function TodoList({
   onToggle,
   onDelete,
   onReorder,
+  onUpdateDescription,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -71,6 +73,7 @@ export default function TodoList({
       isDraggable={isDraggable}
       onToggle={onToggle}
       onDelete={onDelete}
+      onUpdateDescription={onUpdateDescription}
     />
   ));
 
