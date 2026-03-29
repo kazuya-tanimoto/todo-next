@@ -32,10 +32,11 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - ニックネーム登録（profilesテーブル、初回ログイン時に設定、後から変更可能）
 - タグ機能（リスト単位のタグ作成・編集・削除、Todo作成時のタグ付与、タグフィルタリング）
 - ソート機能（手動ドラッグ&ドロップ、作成日・名前・完了状態ソート、@dnd-kit使用）
+- Todo詳細表示（アコーディオン式description、blur時自動保存、Realtime同期）
 
 ### Supabase設定状況
 - **リージョン**: ap-northeast-1 (東京)
-- **マイグレーション**: 6ファイル（適用済み）
+- **マイグレーション**: 13ファイル（適用済み）
 - **Google OAuth**: 設定済み
 - **環境変数**: `.env` に設定（gitignore対象）
   - ローカル開発: ローカルSupabase（`supabase start`）がデフォルト
@@ -76,7 +77,8 @@ src/
 │   ├── TagSelector.test.tsx   # タグ選択テスト（4件）
 │   ├── ThemeSwitcher.tsx      # テーマ切り替え
 │   ├── ThemeSwitcher.test.tsx # テーマテスト（2件）
-│   ├── TodoItem.tsx           # Todo項目（ドラッグ&ドロップ対応）
+│   ├── TodoItem.tsx           # Todo項目（アコーディオン + ドラッグ&ドロップ対応）
+│   ├── TodoItem.test.tsx      # TodoItemテスト（4件）
 │   ├── TodoList.tsx           # Todoリスト（DnDコンテキスト管理）
 │   ├── TodoSection.tsx        # TODO管理（Supabase + タグ + ソート）
 │   └── TodoSection.test.tsx   # TODOテスト（9件）
@@ -104,7 +106,9 @@ supabase/
     ├── 20260219000000_pbi002_visible_members.sql  # 共有メンバー可視化
     ├── 20260220000000_add_tags.sql  # タグ + todo_tags + RLS + Realtime
     ├── 20260308000000_remove_todos_position_column.sql  # 未使用positionカラム削除
-    └── 20260309000000_add_todos_position.sql  # ソート用positionカラム追加
+    ├── 20260309000000_add_todos_position.sql  # ソート用positionカラム追加
+    ├── 20260310000000_set_replica_identity_full.sql  # REPLICA IDENTITY FULL設定
+    └── 20260319000000_add_todos_description.sql  # Todo descriptionカラム追加
 
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート
