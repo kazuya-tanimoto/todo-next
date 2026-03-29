@@ -304,6 +304,22 @@ export default function TodoSection({ selectedListId }: Props) {
     }
   };
 
+  const updateDescription = async (id: string, description: string) => {
+    const supabase = createClient();
+    const newDescription = description.trim() || null;
+    const { error } = await supabase
+      .from("todos")
+      .update({ description: newDescription })
+      .eq("id", id);
+    if (!error) {
+      setTodos((prev) =>
+        prev.map((todo) =>
+          todo.id === id ? { ...todo, description: newDescription } : todo
+        )
+      );
+    }
+  };
+
   const clearCompleted = async () => {
     if (!selectedListId) return;
 
@@ -552,6 +568,7 @@ export default function TodoSection({ selectedListId }: Props) {
         onToggle={toggleTodo}
         onDelete={deleteTodo}
         onReorder={reorderTodo}
+        onUpdateDescription={updateDescription}
       />
 
       {/* Footer */}

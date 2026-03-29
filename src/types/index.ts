@@ -12,6 +12,7 @@ export interface Todo {
   completed: boolean;
   created_at: string;
   position: number;
+  description: string | null;
   tags?: Tag[];
 }
 
