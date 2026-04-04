@@ -11,6 +11,7 @@ interface Props {
   isDraggable: boolean;
   onToggle: (id: string, completed: boolean) => void;
   onDelete: (id: string) => void;
+  onUpdateText: (id: string, text: string) => void;
   onUpdateDescription: (id: string, description: string) => void;
 }
 
@@ -19,6 +20,7 @@ export default function TodoItem({
   isDraggable,
   onToggle,
   onDelete,
+  onUpdateText,
   onUpdateDescription,
 }: Props) {
   const {
@@ -31,6 +33,8 @@ export default function TodoItem({
   } = useSortable({ id: todo.id, disabled: !isDraggable });
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [textDraft, setTextDraft] = useState(todo.text);
   const [descriptionDraft, setDescriptionDraft] = useState(
     todo.description ?? ""
   );
@@ -38,6 +42,12 @@ export default function TodoItem({
   useEffect(() => {
     if (isDragging) setIsExpanded(false);
   }, [isDragging]);
+
+  useEffect(() => {
+    if (!isEditing) {
+      setTextDraft(todo.text);
+    }
+  }, [todo.text, isEditing]);
 
   useEffect(() => {
     if (!isExpanded) {
@@ -49,6 +59,28 @@ export default function TodoItem({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : undefined,
+  };
+
+  const commitTextEdit = () => {
+    const trimmed = textDraft.trim();
+    if (trimmed && trimmed !== todo.text) {
+      onUpdateText(todo.id, trimmed);
+    }
+    setIsEditing(false);
+  };
+
+  const cancelTextEdit = () => {
+    setTextDraft(todo.text);
+    setIsEditing(false);
+  };
+
+  const handleTextKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitTextEdit();
+    } else if (e.key === "Escape") {
+      cancelTextEdit();
+    }
   };
 
   const handleBlur = () => {
@@ -98,16 +130,34 @@ export default function TodoItem({
           type="button"
           aria-expanded={isExpanded}
           className="flex-1 min-w-0 text-left flex items-start justify-between gap-2"
-          onClick={() => setIsExpanded((prev) => !prev)}
+          onClick={() => !isEditing && setIsExpanded((prev) => !prev)}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
         >
           <div className="flex-1 min-w-0">
-            <span
-              className={`text-lg ${
-                todo.completed ? "line-through text-[var(--fg-secondary)]" : ""
-              }`}
-            >
-              {todo.text}
-            </span>
+            {isEditing ? (
+              <input
+                type="text"
+                aria-label="Edit todo"
+                value={textDraft}
+                onChange={(e) => setTextDraft(e.target.value)}
+                onBlur={commitTextEdit}
+                onKeyDown={handleTextKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                autoFocus
+                className="theme-input w-full text-lg px-1 py-0"
+              />
+            ) : (
+              <span
+                className={`text-lg ${
+                  todo.completed ? "line-through text-[var(--fg-secondary)]" : ""
+                }`}
+              >
+                {todo.text}
+              </span>
+            )}
             {todo.tags && todo.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {todo.tags.map((tag) => (

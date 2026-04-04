@@ -30,6 +30,7 @@ const defaultProps = {
   isDraggable: false,
   onToggle: vi.fn(),
   onDelete: vi.fn(),
+  onUpdateText: vi.fn(),
   onUpdateDescription: vi.fn(),
 };
 
@@ -96,5 +97,69 @@ describe("TodoItem accordion", () => {
     render(<TodoItem {...defaultProps} todo={todoWithDesc} />);
 
     expect(screen.getByRole("img", { name: /has description/i })).toBeInTheDocument();
+  });
+});
+
+describe("TodoItem inline edit", () => {
+  it("enters edit mode on double-click and saves on Enter", async () => {
+    const user = userEvent.setup();
+    const onUpdateText = vi.fn();
+    render(<TodoItem {...defaultProps} onUpdateText={onUpdateText} />);
+
+    expect(screen.queryByRole("textbox", { name: /edit todo/i })).not.toBeInTheDocument();
+
+    await user.dblClick(screen.getByText("Buy milk"));
+
+    const input = screen.getByRole("textbox", { name: /edit todo/i });
+    expect(input).toHaveValue("Buy milk");
+
+    await user.clear(input);
+    await user.type(input, "Buy eggs{Enter}");
+
+    expect(onUpdateText).toHaveBeenCalledWith("todo-1", "Buy eggs");
+    expect(screen.queryByRole("textbox", { name: /edit todo/i })).not.toBeInTheDocument();
+  });
+
+  it("cancels edit on Escape without saving", async () => {
+    const user = userEvent.setup();
+    const onUpdateText = vi.fn();
+    render(<TodoItem {...defaultProps} onUpdateText={onUpdateText} />);
+
+    await user.dblClick(screen.getByText("Buy milk"));
+
+    const input = screen.getByRole("textbox", { name: /edit todo/i });
+    await user.clear(input);
+    await user.type(input, "Buy eggs{Escape}");
+
+    expect(onUpdateText).not.toHaveBeenCalled();
+    expect(screen.queryByRole("textbox", { name: /edit todo/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Buy milk")).toBeInTheDocument();
+  });
+
+  it("saves on blur when text has changed", async () => {
+    const user = userEvent.setup();
+    const onUpdateText = vi.fn();
+    render(<TodoItem {...defaultProps} onUpdateText={onUpdateText} />);
+
+    await user.dblClick(screen.getByText("Buy milk"));
+
+    const input = screen.getByRole("textbox", { name: /edit todo/i });
+    await user.clear(input);
+    await user.type(input, "Buy bread");
+    await user.tab();
+
+    expect(onUpdateText).toHaveBeenCalledWith("todo-1", "Buy bread");
+  });
+
+  it("does not save on blur when text is unchanged", async () => {
+    const user = userEvent.setup();
+    const onUpdateText = vi.fn();
+    render(<TodoItem {...defaultProps} onUpdateText={onUpdateText} />);
+
+    await user.dblClick(screen.getByText("Buy milk"));
+
+    await user.tab();
+
+    expect(onUpdateText).not.toHaveBeenCalled();
   });
 });

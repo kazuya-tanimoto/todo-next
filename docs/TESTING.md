@@ -56,6 +56,10 @@ vi.mock("@/lib/supabase/client", () => ({
 実装完了後のE2E動作確認には **MCP Playwright** を使用する。
 ローカルSupabaseを起動し、実際のDB・認証と通信して画面操作を検証する。
 
+#### 前提
+
+- `.env` が必要。未作成の場合は `.env.example` をコピーして値を設定すること
+
 #### 手順
 
 1. `supabase start` でローカルSupabaseを起動

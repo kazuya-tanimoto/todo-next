@@ -33,6 +33,7 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - タグ機能（リスト単位のタグ作成・編集・削除、Todo作成時のタグ付与、タグフィルタリング）
 - ソート機能（手動ドラッグ&ドロップ、作成日・名前・完了状態ソート、@dnd-kit使用）
 - Todo詳細表示（アコーディオン式description、blur時自動保存、Realtime同期）
+- Todoタイトル編集（ダブルクリックでインライン編集、blur/Enter保存、Esc キャンセル、Realtime同期）
 
 ### Supabase設定状況
 - **リージョン**: ap-northeast-1 (東京)
@@ -78,7 +79,7 @@ src/
 │   ├── ThemeSwitcher.tsx      # テーマ切り替え
 │   ├── ThemeSwitcher.test.tsx # テーマテスト（2件）
 │   ├── TodoItem.tsx           # Todo項目（アコーディオン + ドラッグ&ドロップ対応）
-│   ├── TodoItem.test.tsx      # TodoItemテスト（4件）
+│   ├── TodoItem.test.tsx      # TodoItemテスト（8件）
 │   ├── TodoList.tsx           # Todoリスト（DnDコンテキスト管理）
 │   ├── TodoSection.tsx        # TODO管理（Supabase + タグ + ソート）
 │   └── TodoSection.test.tsx   # TODOテスト（9件）
