@@ -127,12 +127,25 @@ export default function TodoSection({ selectedListId }: Props) {
               });
             } else if (payload.eventType === "UPDATE") {
               const updated = payload.new as Todo;
-              setTodos((prev) => {
-                const next = prev.map((t) =>
-                  t.id === updated.id ? { ...t, ...updated } : t
-                );
-                return next.sort((a, b) => a.position - b.position);
-              });
+              if (updated.deleted_at) {
+                // ソフトデリートされたらリストから除外
+                setTodos((prev) => prev.filter((t) => t.id !== updated.id));
+              } else {
+                setTodos((prev) => {
+                  const exists = prev.some((t) => t.id === updated.id);
+                  if (exists) {
+                    const next = prev.map((t) =>
+                      t.id === updated.id ? { ...t, ...updated } : t
+                    );
+                    return next.sort((a, b) => a.position - b.position);
+                  }
+                  // ゴミ箱から復元された場合、リストに追加
+                  const restored = { ...updated, tags: [] };
+                  const idx = prev.findIndex((t) => t.position > restored.position);
+                  if (idx === -1) return [...prev, restored];
+                  return [...prev.slice(0, idx), restored, ...prev.slice(idx)];
+                });
+              }
             } else if (payload.eventType === "DELETE") {
               const deleted = payload.old as { id: string };
               setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
@@ -297,7 +310,10 @@ export default function TodoSection({ selectedListId }: Props) {
 
   const deleteTodo = async (id: string) => {
     const supabase = createClient();
-    const { error } = await supabase.from("todos").delete().eq("id", id);
+    const { error } = await supabase
+      .from("todos")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
 
     if (!error) {
       setTodos((prev) => prev.filter((todo) => todo.id !== id));
@@ -341,7 +357,7 @@ export default function TodoSection({ selectedListId }: Props) {
     const supabase = createClient();
     const { error } = await supabase
       .from("todos")
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq("list_id", selectedListId)
       .eq("completed", true);
 

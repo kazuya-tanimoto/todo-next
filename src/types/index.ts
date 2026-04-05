@@ -3,6 +3,7 @@ export interface List {
   user_id: string;
   name: string;
   created_at: string;
+  deleted_at: string | null;
 }
 
 export interface Todo {
@@ -13,6 +14,7 @@ export interface Todo {
   created_at: string;
   position: number;
   description: string | null;
+  deleted_at: string | null;
   tags?: Tag[];
 }
 

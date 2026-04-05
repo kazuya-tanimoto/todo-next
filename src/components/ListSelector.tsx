@@ -98,9 +98,28 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
               );
             } else if (payload.eventType === "UPDATE") {
               const updated = payload.new as List;
-              setLists((prev) =>
-                prev.map((l) => (l.id === updated.id ? updated : l))
-              );
+              if (updated.deleted_at) {
+                // ソフトデリートされたらリストから除外
+                setLists((prev) => {
+                  const remaining = prev.filter((l) => l.id !== updated.id);
+                  if (selectedListIdRef.current === updated.id) {
+                    onSelectListRef.current(
+                      remaining.length > 0 ? remaining[0].id : null
+                    );
+                  }
+                  return remaining;
+                });
+              } else {
+                // 復元または通常更新
+                setLists((prev) => {
+                  const exists = prev.some((l) => l.id === updated.id);
+                  if (exists) {
+                    return prev.map((l) => (l.id === updated.id ? updated : l));
+                  }
+                  // ゴミ箱から復元された場合、リストに追加
+                  return [...prev, updated];
+                });
+              }
             } else if (payload.eventType === "DELETE") {
               const deleted = payload.old as { id: string };
               setLists((prev) => {
@@ -180,10 +199,13 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
   };
 
   const deleteList = async (id: string) => {
-    if (!window.confirm("このリストを削除しますか？")) return;
+    if (!window.confirm("このリストをゴミ箱に移動しますか？")) return;
 
     const supabase = createClient();
-    const { error } = await supabase.from("lists").delete().eq("id", id);
+    const { error } = await supabase
+      .from("lists")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
 
     if (!error) {
       const remaining = lists.filter((l) => l.id !== id);
