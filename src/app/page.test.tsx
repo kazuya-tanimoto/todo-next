@@ -44,6 +44,9 @@ vi.mock("@/lib/supabase/client", () => ({
       if (table === "lists") {
         return {
           select: () => ({
+            is: () => ({
+              order: mockListsOrder,
+            }),
             order: mockListsOrder,
           }),
           insert: () => ({
@@ -63,6 +66,9 @@ vi.mock("@/lib/supabase/client", () => ({
       return {
         select: () => ({
           eq: () => ({
+            is: () => ({
+              order: mockTodosOrder,
+            }),
             order: mockTodosOrder,
           }),
         }),

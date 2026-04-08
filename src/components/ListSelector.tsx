@@ -39,6 +39,7 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     const { data, error } = await supabase
       .from("lists")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: true });
 
     if (!error && data) {

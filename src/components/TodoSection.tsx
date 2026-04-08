@@ -85,6 +85,7 @@ export default function TodoSection({ selectedListId }: Props) {
           .from("todos")
           .select("*")
           .eq("list_id", selectedListId)
+          .is("deleted_at", null)
           .order("position", { ascending: true }),
         supabase
           .from("tags")

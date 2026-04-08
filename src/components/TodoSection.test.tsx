@@ -68,6 +68,9 @@ vi.mock("@/lib/supabase/client", () => ({
         return {
           select: () => ({
             eq: () => ({
+              is: () => ({
+                order: mockTodosOrder,
+              }),
               order: mockTodosOrder,
             }),
           }),
