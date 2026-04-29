@@ -41,7 +41,7 @@
 
 ### PBI-004: ゴミ箱機能（ソフトデリート）
 - **優先度**: 🟡 中
-- **ステータス**: `TODO`
+- **ステータス**: `IN PROGRESS`（本番E2Eで silent-fail バグ発見、修正PR #4 レビュー中）
 - **目的**: 誤削除の救済手段。特に共有リストでは他のメンバーが追加したTodoを誤って消すリスクがあり、復元できないと信頼性が損なわれる。
 - **概要**: 削除したTodo・リストを30日間ゴミ箱に保持し、復元可能にする。
 - **要件**:
@@ -184,3 +184,24 @@
   - Playwright設定
   - 認証フロー（TESTING.mdの方針に従う）
   - 主要フローのテスト（Todo CRUD、リスト管理、共有）
+
+### PBI-018: Claude Code hooksで品質ゲート整備
+- **優先度**: 🟡 中
+- **ステータス**: `TODO`
+- **目的**: PBI-004本番E2E検証時、`yarn typecheck` 未実行で型エラーが放置されたり、共有メンバー視点のシナリオを試さずに silent fail バグを見逃したりする事例が発生。CLAUDE.mdの指示は約7割しか守られないため、hookで仕組み化して100%の品質ゲートにする。
+- **概要**: PostToolUse / Stop hookでtypecheck・testを自動実行し、失敗時はClaudeをブロックする。
+- **要件**:
+  - `.claude/settings.json` に PostToolUse hook（`Edit|Write` matcher、`yarn typecheck`）追加
+  - Stop hookに `yarn typecheck && yarn test` 追加（exit 2でブロック）
+  - hook実行時間が許容範囲か検証（必要なら `tsgo` 等の高速化検討）
+  - TESTING.md 4工程チェックリストの未消化検出（PBI完了宣言前）の仕組み
+
+### PBI-019: silent-failパターンの監査と修正
+- **優先度**: 🟡 中
+- **依存**: なし（PBI-004の修正PRで TrashView 部分は対応済み）
+- **目的**: PostgRESTは RLS で UPDATE/DELETE が拒否された場合、status 200 + 空配列を返してerrorにならない。`if (!error)` だけ見ている箇所は silent fail する可能性があり、UI が嘘をつく。
+- **概要**: コードベース全体で同種パターンを監査し、`.select()` で affected rows 検証を追加する。
+- **要件**:
+  - `ListSelector.deleteList`、`renameList` などUPDATE系の監査
+  - `TodoSection` のtodo update/delete系の監査
+  - エラーUIの共通化検討（現状 `window.alert` で場当たり対応）

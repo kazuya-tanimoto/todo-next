@@ -20,21 +20,35 @@ export default function TrashView({ onClose }: Props) {
   const fetchTrash = async () => {
     const supabase = createClient();
 
-    // 削除済みリスト（自分がオーナー）とその中のtodosを取得
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    // ゴミ箱には自分がオーナーのリスト/Todoのみ表示する。
+    // 共有先リストはRLSで参照可能だが、UPDATE/DELETEはオーナー限定のため
+    // ここに表示すると操作がsilent failする（PBI-004 fix）。
     const [todosResult, listsResult] = await Promise.all([
       supabase
         .from("todos")
-        .select("*")
+        .select("*, lists!inner(user_id)")
+        .eq("lists.user_id", user.id)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false }),
       supabase
         .from("lists")
         .select("*")
+        .eq("user_id", user.id)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false }),
     ]);
 
-    const allDeletedTodos = todosResult.data ?? [];
+    const allDeletedTodos = (todosResult.data ?? []).map(
+      ({ lists: _lists, ...t }) => t as Todo
+    );
     const allDeletedLists = listsResult.data ?? [];
 
     // リストごとのtodosをグルーピング
@@ -60,48 +74,62 @@ export default function TrashView({ onClose }: Props) {
 
   const restoreTodo = async (id: string) => {
     const supabase = createClient();
-    const { error } = await supabase
+    // RLSでUPDATE拒否されてもPostgRESTはerrorではなく0行を返すため、
+    // .select()で更新行数を確認する（PBI-004 fix: silent fail防止）。
+    const { data, error } = await supabase
       .from("todos")
       .update({ deleted_at: null })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
-      setDeletedLists((prev) =>
-        prev.map((l) => ({
-          ...l,
-          todos: l.todos.filter((t) => t.id !== id),
-        }))
-      );
+    if (error || !data || data.length === 0) {
+      window.alert("Todoの復元に失敗しました。権限がない可能性があります。");
+      return;
     }
+    setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
+    setDeletedLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        todos: l.todos.filter((t) => t.id !== id),
+      }))
+    );
   };
 
   const permanentDeleteTodo = async (id: string) => {
     const supabase = createClient();
-    const { error } = await supabase.from("todos").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("todos")
+      .delete()
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
-      setDeletedLists((prev) =>
-        prev.map((l) => ({
-          ...l,
-          todos: l.todos.filter((t) => t.id !== id),
-        }))
-      );
+    if (error || !data || data.length === 0) {
+      window.alert("Todoの完全削除に失敗しました。権限がない可能性があります。");
+      return;
     }
+    setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
+    setDeletedLists((prev) =>
+      prev.map((l) => ({
+        ...l,
+        todos: l.todos.filter((t) => t.id !== id),
+      }))
+    );
   };
 
   const restoreList = async (list: DeletedList) => {
     const supabase = createClient();
     // リスト復元 → トリガーがtodosも復元する
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("lists")
       .update({ deleted_at: null })
-      .eq("id", list.id);
+      .eq("id", list.id)
+      .select();
 
-    if (!error) {
-      setDeletedLists((prev) => prev.filter((l) => l.id !== list.id));
+    if (error || !data || data.length === 0) {
+      window.alert("リストの復元に失敗しました。権限がない可能性があります。");
+      return;
     }
+    setDeletedLists((prev) => prev.filter((l) => l.id !== list.id));
   };
 
   const permanentDeleteList = async (id: string) => {
@@ -109,11 +137,17 @@ export default function TrashView({ onClose }: Props) {
       return;
 
     const supabase = createClient();
-    const { error } = await supabase.from("lists").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("lists")
+      .delete()
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setDeletedLists((prev) => prev.filter((l) => l.id !== id));
+    if (error || !data || data.length === 0) {
+      window.alert("リストの完全削除に失敗しました。権限がない可能性があります。");
+      return;
     }
+    setDeletedLists((prev) => prev.filter((l) => l.id !== id));
   };
 
   const emptyTrash = async () => {

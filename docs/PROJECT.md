@@ -34,10 +34,11 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - ソート機能（手動ドラッグ&ドロップ、作成日・名前・完了状態ソート、@dnd-kit使用）
 - Todo詳細表示（アコーディオン式description、blur時自動保存、Realtime同期）
 - Todoタイトル編集（ダブルクリックでインライン編集、blur/Enter保存、Esc キャンセル、Realtime同期）
+- ゴミ箱機能（Todo/リストのソフトデリート、復元、完全削除、リスト→Todo連動、30日経過で自動物理削除、Realtime同期）
 
 ### Supabase設定状況
 - **リージョン**: ap-northeast-1 (東京)
-- **マイグレーション**: 13ファイル（適用済み）
+- **マイグレーション**: 15ファイル（適用済み）
 - **Google OAuth**: 設定済み
 - **環境変数**: `.env` に設定（gitignore対象）
   - ローカル開発: ローカルSupabase（`supabase start`）がデフォルト
@@ -109,7 +110,9 @@ supabase/
     ├── 20260308000000_remove_todos_position_column.sql  # 未使用positionカラム削除
     ├── 20260309000000_add_todos_position.sql  # ソート用positionカラム追加
     ├── 20260310000000_set_replica_identity_full.sql  # REPLICA IDENTITY FULL設定
-    └── 20260319000000_add_todos_description.sql  # Todo descriptionカラム追加
+    ├── 20260319000000_add_todos_description.sql  # Todo descriptionカラム追加
+    ├── 20260405000000_add_soft_delete.sql  # ソフトデリート + RLS + 連動トリガー + pg_cron
+    └── 20260408000000_fix_soft_delete_realtime.sql  # Realtime+RLS互換: deleted_at条件をSELECTから除去
 
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート
