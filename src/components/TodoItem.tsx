@@ -93,7 +93,7 @@ export default function TodoItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`theme-card ${todo.completed ? "todo-completed" : ""}`}
+      className={`theme-card group ${todo.completed ? "todo-completed" : ""}`}
     >
       <div className="flex items-center gap-4 p-4">
         {isDraggable && (
