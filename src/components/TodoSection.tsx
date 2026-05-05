@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
+import { silentFailAlert } from "@/lib/errors";
 import { Todo, Tag, SortMode } from "@/types";
 import { TagColorKey } from "@/lib/tagColors";
 import TodoList from "./TodoList";
@@ -295,76 +296,99 @@ export default function TodoSection({ selectedListId }: Props) {
 
   const toggleTodo = async (id: string, completed: boolean) => {
     const supabase = createClient();
-    const { error } = await supabase
+    // RLSでUPDATE拒否されてもPostgRESTはerrorではなく0行を返すため、
+    // .select()で更新行数を確認する（PBI-019）。
+    const { data, error } = await supabase
       .from("todos")
       .update({ completed: !completed })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setTodos((prev) =>
-        prev.map((todo) =>
-          todo.id === id ? { ...todo, completed: !completed } : todo
-        )
-      );
+    if (error || !data || data.length === 0) {
+      silentFailAlert("Todoの更新");
+      return;
     }
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === id ? { ...todo, completed: !completed } : todo
+      )
+    );
   };
 
   const deleteTodo = async (id: string) => {
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("todos")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setTodos((prev) => prev.filter((todo) => todo.id !== id));
+    if (error || !data || data.length === 0) {
+      silentFailAlert("Todoの削除");
+      return;
     }
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
   };
 
   const updateText = async (id: string, text: string) => {
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("todos")
       .update({ text })
-      .eq("id", id);
-    if (!error) {
-      setTodos((prev) =>
-        prev.map((todo) =>
-          todo.id === id ? { ...todo, text } : todo
-        )
-      );
+      .eq("id", id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("Todoの更新");
+      return;
     }
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === id ? { ...todo, text } : todo
+      )
+    );
   };
 
   const updateDescription = async (id: string, description: string) => {
     const supabase = createClient();
     const newDescription = description.trim() || null;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("todos")
       .update({ description: newDescription })
-      .eq("id", id);
-    if (!error) {
-      setTodos((prev) =>
-        prev.map((todo) =>
-          todo.id === id ? { ...todo, description: newDescription } : todo
-        )
-      );
+      .eq("id", id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("Todoの更新");
+      return;
     }
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.id === id ? { ...todo, description: newDescription } : todo
+      )
+    );
   };
 
   const clearCompleted = async () => {
     if (!selectedListId) return;
+    // 完了済みが0件のときはDBに問い合わせる必要なし。
+    // この早期returnを置かないと、後段の「0行=silent fail」判定と区別できない。
+    const completedCount = todos.filter((t) => t.completed).length;
+    if (completedCount === 0) return;
 
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("todos")
       .update({ deleted_at: new Date().toISOString() })
       .eq("list_id", selectedListId)
-      .eq("completed", true);
+      .eq("completed", true)
+      .select();
 
-    if (!error) {
-      setTodos((prev) => prev.filter((t) => !t.completed));
+    if (error || !data || data.length === 0) {
+      silentFailAlert("完了済みTodoの削除");
+      return;
     }
+    setTodos((prev) => prev.filter((t) => !t.completed));
   };
 
   // Tag CRUD
@@ -384,6 +408,8 @@ export default function TodoSection({ selectedListId }: Props) {
 
   const updateTag = async (id: string, name: string, color: TagColorKey) => {
     const supabase = createClient();
+    // .single() は0行時 error.code = 'PGRST116' を返すため、
+    // RLS拒否やID不在による silent-fail も error 経由で検出できる。
     const { data, error } = await supabase
       .from("tags")
       .update({ name, color })
@@ -391,35 +417,43 @@ export default function TodoSection({ selectedListId }: Props) {
       .select()
       .single();
 
-    if (!error && data) {
-      setTags((prev) => prev.map((t) => (t.id === id ? data : t)));
-      setTodos((prev) =>
-        prev.map((todo) => ({
-          ...todo,
-          tags: todo.tags?.map((t) => (t.id === id ? data : t)),
-        }))
-      );
+    if (error || !data) {
+      silentFailAlert("タグの更新");
+      return;
     }
+    setTags((prev) => prev.map((t) => (t.id === id ? data : t)));
+    setTodos((prev) =>
+      prev.map((todo) => ({
+        ...todo,
+        tags: todo.tags?.map((t) => (t.id === id ? data : t)),
+      }))
+    );
   };
 
   const deleteTag = async (id: string) => {
     const supabase = createClient();
-    const { error } = await supabase.from("tags").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("tags")
+      .delete()
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setTags((prev) => prev.filter((t) => t.id !== id));
-      setSelectedTagIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      setTodos((prev) =>
-        prev.map((todo) => ({
-          ...todo,
-          tags: todo.tags?.filter((t) => t.id !== id),
-        }))
-      );
+    if (error || !data || data.length === 0) {
+      silentFailAlert("タグの削除");
+      return;
     }
+    setTags((prev) => prev.filter((t) => t.id !== id));
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setTodos((prev) =>
+      prev.map((todo) => ({
+        ...todo,
+        tags: todo.tags?.filter((t) => t.id !== id),
+      }))
+    );
   };
 
   const toggleFilterTag = (tagId: string) => {
@@ -475,11 +509,23 @@ export default function TodoSection({ selectedListId }: Props) {
         }));
         setTodos(rebalanced);
         const supabase = createClient();
-        await Promise.all(
+        // position更新はfire-and-forget。RLS拒否時もユーザー操作を阻害したくないので
+        // warnのみに留める（PBI-019）。
+        const results = await Promise.all(
           rebalanced.map((t) =>
-            supabase.from("todos").update({ position: t.position }).eq("id", t.id)
+            supabase
+              .from("todos")
+              .update({ position: t.position })
+              .eq("id", t.id)
+              .select()
           )
         );
+        for (const { data, error } of results) {
+          if (error || !data || data.length === 0) {
+            console.warn("Todo position rebalance silently failed");
+            break;
+          }
+        }
         return;
       }
     }
@@ -491,7 +537,14 @@ export default function TodoSection({ selectedListId }: Props) {
     setTodos(updated);
 
     const supabase = createClient();
-    await supabase.from("todos").update({ position: newPosition }).eq("id", activeId);
+    const { data, error } = await supabase
+      .from("todos")
+      .update({ position: newPosition })
+      .eq("id", activeId)
+      .select();
+    if (error || !data || data.length === 0) {
+      console.warn("Todo position update silently failed");
+    }
   };
 
   const filteredTodos = useMemo(

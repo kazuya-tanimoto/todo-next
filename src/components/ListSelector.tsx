@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
+import { silentFailAlert } from "@/lib/errors";
 import { List } from "@/types";
 import ShareDialog from "@/components/ShareDialog";
 import ListItem from "./ListItem";
@@ -184,36 +185,45 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
     }
 
     const supabase = createClient();
-    const { error } = await supabase
+    // RLSでUPDATE拒否されてもPostgRESTはerrorではなく0行を返すため、
+    // .select()で更新行数を確認する（PBI-019）。
+    const { data, error } = await supabase
       .from("lists")
       .update({ name: editingName.trim() })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      setLists(
-        lists.map((l) =>
-          l.id === id ? { ...l, name: editingName.trim() } : l
-        )
-      );
-    }
     setEditingId(null);
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("リスト名の変更");
+      return;
+    }
+    setLists(
+      lists.map((l) =>
+        l.id === id ? { ...l, name: editingName.trim() } : l
+      )
+    );
   };
 
   const deleteList = async (id: string) => {
     if (!window.confirm("このリストをゴミ箱に移動しますか？")) return;
 
     const supabase = createClient();
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("lists")
       .update({ deleted_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
 
-    if (!error) {
-      const remaining = lists.filter((l) => l.id !== id);
-      setLists(remaining);
-      if (selectedListId === id) {
-        onSelectList(remaining.length > 0 ? remaining[0].id : null);
-      }
+    if (error || !data || data.length === 0) {
+      silentFailAlert("リストの削除");
+      return;
+    }
+    const remaining = lists.filter((l) => l.id !== id);
+    setLists(remaining);
+    if (selectedListId === id) {
+      onSelectList(remaining.length > 0 ? remaining[0].id : null);
     }
   };
 

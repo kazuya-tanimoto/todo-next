@@ -43,13 +43,13 @@ const mockTags = [
 
 // Terminal mocks for todos
 const mockTodosOrder = vi.fn();
-const mockTodosEq = vi.fn();
+const mockTodosUpdateResult = vi.fn();
 const mockTodosSingle = vi.fn();
 
 // Terminal mocks for tags
 const mockTagsOrder = vi.fn();
 const mockTagsSingle = vi.fn();
-const mockTagsEq = vi.fn();
+const mockTagsDeleteResult = vi.fn();
 
 // Terminal mock for todo_tags
 const mockTodoTagsIn = vi.fn();
@@ -80,10 +80,17 @@ vi.mock("@/lib/supabase/client", () => ({
             }),
           }),
           update: () => ({
-            eq: mockTodosEq,
+            eq: () => ({
+              eq: () => ({
+                select: mockTodosUpdateResult,
+              }),
+              select: mockTodosUpdateResult,
+            }),
           }),
           delete: () => ({
-            eq: mockTodosEq,
+            eq: () => ({
+              select: mockTodosUpdateResult,
+            }),
           }),
         };
       }
@@ -107,7 +114,9 @@ vi.mock("@/lib/supabase/client", () => ({
             }),
           }),
           delete: () => ({
-            eq: mockTagsEq,
+            eq: () => ({
+              select: mockTagsDeleteResult,
+            }),
           }),
         };
       }
@@ -130,10 +139,17 @@ vi.mock("@/lib/supabase/client", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockTodosOrder.mockResolvedValue({ data: mockTodos, error: null });
-  mockTodosEq.mockResolvedValue({ error: null });
+  mockTodosUpdateResult.mockResolvedValue({
+    data: [{ id: "todo-1" }],
+    error: null,
+  });
   mockTagsOrder.mockResolvedValue({ data: [], error: null });
-  mockTagsEq.mockResolvedValue({ error: null });
+  mockTagsDeleteResult.mockResolvedValue({
+    data: [{ id: "tag-1" }],
+    error: null,
+  });
   mockTagsSingle.mockResolvedValue({ data: null, error: null });
+  window.alert = vi.fn();
   mockTodoTagsIn.mockResolvedValue({ data: [], error: null });
   mockTodoTagsInsert.mockResolvedValue({ error: null });
 });
@@ -205,7 +221,10 @@ describe("TodoSection", () => {
 
   it("can toggle a todo", async () => {
     const user = userEvent.setup();
-    mockTodosEq.mockResolvedValue({ error: null });
+    mockTodosUpdateResult.mockResolvedValue({
+      data: [{ id: "todo-1" }],
+      error: null,
+    });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -223,7 +242,10 @@ describe("TodoSection", () => {
 
   it("can delete a todo", async () => {
     const user = userEvent.setup();
-    mockTodosEq.mockResolvedValue({ error: null });
+    mockTodosUpdateResult.mockResolvedValue({
+      data: [{ id: "todo-1" }],
+      error: null,
+    });
 
     render(<TodoSection selectedListId="list-1" />);
 
@@ -245,8 +267,9 @@ describe("TodoSection", () => {
 
   it("can clear completed todos", async () => {
     const user = userEvent.setup();
-    mockTodosEq.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ error: null }),
+    mockTodosUpdateResult.mockResolvedValue({
+      data: [{ id: "todo-2" }],
+      error: null,
     });
 
     render(<TodoSection selectedListId="list-1" />);
@@ -264,6 +287,83 @@ describe("TodoSection", () => {
     });
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
     expect(screen.getByText("0/1 completed")).toBeInTheDocument();
+  });
+
+  it("alerts and keeps todo when toggle returns 0 rows (silent fail)", async () => {
+    const user = userEvent.setup();
+    mockTodosUpdateResult.mockResolvedValue({ data: [], error: null });
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+    });
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Todoの更新")
+      );
+    });
+    // 1 originally completed (Walk the dog); count must not change
+    expect(screen.getByText("1/2 completed")).toBeInTheDocument();
+  });
+
+  it("alerts and keeps todo when delete returns 0 rows (silent fail)", async () => {
+    const user = userEvent.setup();
+    mockTodosUpdateResult.mockResolvedValue({ data: [], error: null });
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+    });
+
+    const deleteButtons = screen.getAllByRole("button", {
+      name: "Delete task",
+    });
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Todoの削除")
+      );
+    });
+    expect(screen.getByText("Buy milk")).toBeInTheDocument();
+  });
+
+  it("alerts and keeps text when updateText returns 0 rows (silent fail)", async () => {
+    const user = userEvent.setup();
+    mockTodosUpdateResult.mockResolvedValue({ data: [], error: null });
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Buy milk")).toBeInTheDocument();
+    });
+
+    // Double-click activates inline edit
+    await user.dblClick(screen.getByText("Buy milk"));
+    const editInput = screen.getByDisplayValue("Buy milk");
+    await user.clear(editInput);
+    await user.type(editInput, "Buy bread");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Todoの更新")
+      );
+    });
+    expect(screen.getByText("Buy milk")).toBeInTheDocument();
+    expect(screen.queryByText("Buy bread")).not.toBeInTheDocument();
   });
 
   it("renders tags in TagFilter when tags exist", async () => {

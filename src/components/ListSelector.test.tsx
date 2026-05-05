@@ -19,7 +19,8 @@ const mockLists = [
 ];
 
 const mockOrder = vi.fn();
-const mockEq = vi.fn();
+const mockUpdateResult = vi.fn();
+const mockDeleteResult = vi.fn();
 const mockSingle = vi.fn();
 const mockProfilesIn = vi.fn();
 
@@ -57,10 +58,14 @@ vi.mock("@/lib/supabase/client", () => ({
           }),
         }),
         update: () => ({
-          eq: mockEq,
+          eq: () => ({
+            select: mockUpdateResult,
+          }),
         }),
         delete: () => ({
-          eq: mockEq,
+          eq: () => ({
+            select: mockDeleteResult,
+          }),
         }),
       };
     },
@@ -72,8 +77,10 @@ vi.mock("@/lib/supabase/client", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockOrder.mockResolvedValue({ data: mockLists, error: null });
-  mockEq.mockResolvedValue({ error: null });
+  mockUpdateResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
+  mockDeleteResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
   mockProfilesIn.mockResolvedValue({ data: [], error: null });
+  window.alert = vi.fn();
 
   // happy-dom doesn't have window.confirm, so define it
   window.confirm = vi.fn(() => true);
@@ -157,7 +164,7 @@ describe("ListSelector", () => {
 
   it("renames a list", async () => {
     const user = userEvent.setup();
-    mockEq.mockResolvedValue({ error: null });
+    mockUpdateResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
 
     render(
       <ListSelector selectedListId="list-1" onSelectList={() => {}} />
@@ -183,7 +190,7 @@ describe("ListSelector", () => {
   it("deletes a list and selects the next one", async () => {
     const user = userEvent.setup();
     const onSelectList = vi.fn();
-    mockEq.mockResolvedValue({ error: null });
+    mockUpdateResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
 
     render(
       <ListSelector selectedListId="list-1" onSelectList={onSelectList} />
@@ -199,6 +206,57 @@ describe("ListSelector", () => {
       expect(screen.queryByText("Groceries")).not.toBeInTheDocument();
     });
     expect(onSelectList).toHaveBeenCalledWith("list-2");
+  });
+
+  it("alerts and keeps list when rename returns 0 rows (silent fail)", async () => {
+    const user = userEvent.setup();
+    mockUpdateResult.mockResolvedValue({ data: [], error: null });
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    render(<ListSelector selectedListId="list-1" onSelectList={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Groceries")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText("Rename Groceries"));
+    const editInput = screen.getByDisplayValue("Groceries");
+    await user.clear(editInput);
+    await user.type(editInput, "Food");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("リスト名の変更")
+      );
+    });
+    // Original name remains because optimistic update was skipped
+    expect(screen.getByText("Groceries")).toBeInTheDocument();
+    expect(screen.queryByText("Food")).not.toBeInTheDocument();
+  });
+
+  it("alerts and keeps list when delete returns 0 rows (silent fail)", async () => {
+    const user = userEvent.setup();
+    const onSelectList = vi.fn();
+    mockUpdateResult.mockResolvedValue({ data: [], error: null });
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    render(<ListSelector selectedListId="list-1" onSelectList={onSelectList} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Groceries")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText("Delete Groceries"));
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("リストの削除")
+      );
+    });
+    expect(screen.getByText("Groceries")).toBeInTheDocument();
   });
 
   it("shows owner name on shared lists", async () => {

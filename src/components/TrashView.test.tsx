@@ -55,6 +55,9 @@ const makeMutationChain = (response: { data: unknown[] | null; error: unknown })
     eq: () => ({
       select: () => Promise.resolve(response),
     }),
+    in: () => ({
+      select: () => Promise.resolve(response),
+    }),
   }),
 });
 
@@ -176,5 +179,47 @@ describe("TrashView", () => {
       );
     });
     expect(screen.getByText("stuck-todo")).toBeInTheDocument();
+  });
+
+  it("alerts when emptyTrash partial-fails (silent fail)", async () => {
+    trashTodos = [
+      {
+        id: "t1",
+        text: "stuck-todo",
+        list_id: "l-active",
+        deleted_at: new Date().toISOString(),
+      },
+    ];
+    trashLists = [
+      {
+        id: "l1",
+        name: "stuck-list",
+        user_id: "user-1",
+        deleted_at: new Date().toISOString(),
+      },
+    ];
+    // todos delete returns 0 rows → 部分失敗
+    mockTodosDelete.mockImplementation(
+      () => makeMutationChain({ data: [], error: null }).delete()
+    );
+    mockListsDelete.mockImplementation(
+      () => makeMutationChain({ data: [{ id: "l1" }], error: null }).delete()
+    );
+
+    window.confirm = vi.fn(() => true);
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+
+    const user = userEvent.setup();
+    render(<TrashView onClose={vi.fn()} />);
+    await waitFor(() => screen.getByText("stuck-todo"));
+
+    await user.click(screen.getByRole("button", { name: "Empty trash" }));
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("ゴミ箱の一部削除")
+      );
+    });
   });
 });

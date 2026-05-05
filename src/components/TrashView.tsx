@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { silentFailAlert } from "@/lib/errors";
 import { Todo, List } from "@/types";
 
 interface Props {
@@ -83,7 +84,7 @@ export default function TrashView({ onClose }: Props) {
       .select();
 
     if (error || !data || data.length === 0) {
-      window.alert("Todoの復元に失敗しました。権限がない可能性があります。");
+      silentFailAlert("Todoの復元");
       return;
     }
     setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
@@ -104,7 +105,7 @@ export default function TrashView({ onClose }: Props) {
       .select();
 
     if (error || !data || data.length === 0) {
-      window.alert("Todoの完全削除に失敗しました。権限がない可能性があります。");
+      silentFailAlert("Todoの完全削除");
       return;
     }
     setDeletedTodos((prev) => prev.filter((t) => t.id !== id));
@@ -126,7 +127,7 @@ export default function TrashView({ onClose }: Props) {
       .select();
 
     if (error || !data || data.length === 0) {
-      window.alert("リストの復元に失敗しました。権限がない可能性があります。");
+      silentFailAlert("リストの復元");
       return;
     }
     setDeletedLists((prev) => prev.filter((l) => l.id !== list.id));
@@ -144,7 +145,7 @@ export default function TrashView({ onClose }: Props) {
       .select();
 
     if (error || !data || data.length === 0) {
-      window.alert("リストの完全削除に失敗しました。権限がない可能性があります。");
+      silentFailAlert("リストの完全削除");
       return;
     }
     setDeletedLists((prev) => prev.filter((l) => l.id !== id));
@@ -158,14 +159,33 @@ export default function TrashView({ onClose }: Props) {
 
     // 単独削除のtodosを物理削除
     const todoIds = deletedTodos.map((t) => t.id);
+    let todosDeleted = 0;
     if (todoIds.length > 0) {
-      await supabase.from("todos").delete().in("id", todoIds);
+      const { data, error } = await supabase
+        .from("todos")
+        .delete()
+        .in("id", todoIds)
+        .select();
+      if (!error && data) todosDeleted = data.length;
     }
 
     // 削除済みリストを物理削除（cascade でtodosも消える）
     const listIds = deletedLists.map((l) => l.id);
+    let listsDeleted = 0;
     if (listIds.length > 0) {
-      await supabase.from("lists").delete().in("id", listIds);
+      const { data, error } = await supabase
+        .from("lists")
+        .delete()
+        .in("id", listIds)
+        .select();
+      if (!error && data) listsDeleted = data.length;
+    }
+
+    // 部分失敗を検知したら、UIを再取得してDBと整合させる（PBI-019）。
+    if (todosDeleted < todoIds.length || listsDeleted < listIds.length) {
+      silentFailAlert("ゴミ箱の一部削除");
+      await fetchTrash();
+      return;
     }
 
     setDeletedTodos([]);

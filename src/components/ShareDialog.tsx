@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { silentFailAlert } from "@/lib/errors";
 import { InviteToken, ListMember } from "@/types";
 
 interface Props {
@@ -81,21 +82,35 @@ export default function ShareDialog({
 
   const deactivateInvite = async (id: string) => {
     const supabase = createClient();
-    await supabase
+    // RLS拒否時もPostgRESTはerrorではなく0行を返すため、
+    // .select()で更新行数を確認する（PBI-019）。
+    const { data, error } = await supabase
       .from("invite_tokens")
       .update({ is_active: false })
-      .eq("id", id);
+      .eq("id", id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("招待リンクの無効化");
+      return;
+    }
     setInvites(invites.filter((inv) => inv.id !== id));
   };
 
   const removeMember = async (userId: string) => {
     if (!window.confirm("このメンバーを削除しますか？")) return;
     const supabase = createClient();
-    await supabase
+    const { data, error } = await supabase
       .from("list_shares")
       .delete()
       .eq("list_id", listId)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("メンバーの削除");
+      return;
+    }
     setMembers(members.filter((m) => m.user_id !== userId));
   };
 
@@ -107,11 +122,17 @@ export default function ShareDialog({
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase
+    const { data, error } = await supabase
       .from("list_shares")
       .delete()
       .eq("list_id", listId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("リストからの離脱");
+      return;
+    }
 
     onLeave?.();
     onClose();

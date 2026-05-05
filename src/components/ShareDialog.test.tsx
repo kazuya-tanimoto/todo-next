@@ -54,14 +54,23 @@ describe("ShareDialog", () => {
         }),
       }),
       update: () => ({
-        eq: () => Promise.resolve({ error: null }),
+        eq: () => ({
+          select: () => Promise.resolve({ data: [{ id: "inv-1" }], error: null }),
+        }),
       }),
       delete: () => ({
         eq: () => ({
-          eq: () => Promise.resolve({ error: null }),
+          eq: () => ({
+            select: () =>
+              Promise.resolve({
+                data: [{ list_id: "list-1", user_id: "user-2" }],
+                error: null,
+              }),
+          }),
         }),
       }),
     });
+    window.alert = vi.fn();
   });
 
   it("renders share dialog title and list name for owner", () => {
@@ -180,6 +189,88 @@ describe("ShareDialog", () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
+  it("alerts and keeps member when remove returns 0 rows (silent fail)", async () => {
+    window.confirm = vi.fn().mockReturnValue(true);
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+    mockRpc.mockResolvedValue({
+      data: [
+        { user_id: "user-1", email: "owner@example.com", display_name: "Me", is_owner: true },
+        { user_id: "user-2", email: "m@example.com", display_name: "Bob", is_owner: false },
+      ],
+    });
+    mockFrom.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            gt: () => ({
+              order: () => Promise.resolve({ data: [] }),
+            }),
+          }),
+        }),
+      }),
+      delete: () => ({
+        eq: () => ({
+          eq: () => ({
+            select: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+      }),
+    });
+
+    const user = userEvent.setup();
+    render(<ShareDialog {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText("Remove m@example.com"));
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("メンバーの削除")
+      );
+    });
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+  });
+
+  it("alerts and stays in dialog when leave returns 0 rows (silent fail)", async () => {
+    window.confirm = vi.fn().mockReturnValue(true);
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+    mockRpc.mockResolvedValue({
+      data: [
+        { user_id: "user-owner", email: "o@example.com", display_name: "Owner", is_owner: true },
+        { user_id: "user-1", email: "me@example.com", display_name: "Me", is_owner: false },
+      ],
+    });
+    mockFrom.mockReturnValue({
+      delete: () => ({
+        eq: () => ({
+          eq: () => ({
+            select: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+      }),
+    });
+
+    const onLeave = vi.fn();
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<ShareDialog {...defaultProps} isOwner={false} onLeave={onLeave} onClose={onClose} />);
+
+    await user.click(screen.getByRole("button", { name: /離脱/ }));
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("リストからの離脱")
+      );
+    });
+    expect(onLeave).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("calls onLeave and onClose when leaving a shared list", async () => {
     window.confirm = vi.fn().mockReturnValue(true);
     const user = userEvent.setup();
@@ -189,7 +280,13 @@ describe("ShareDialog", () => {
     mockFrom.mockReturnValue({
       delete: () => ({
         eq: () => ({
-          eq: () => Promise.resolve({ error: null }),
+          eq: () => ({
+            select: () =>
+              Promise.resolve({
+                data: [{ list_id: "list-1", user_id: "user-1" }],
+                error: null,
+              }),
+          }),
         }),
       }),
     });
