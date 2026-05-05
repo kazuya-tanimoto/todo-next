@@ -198,7 +198,7 @@
 
 ### PBI-019: silent-failパターンの監査と修正
 - **優先度**: 🟡 中
-- **ステータス**: `IN PROGRESS`
+- **ステータス**: `DONE`
 - **依存**: なし（PBI-004の修正PRで TrashView 部分は対応済み）
 - **目的**: PostgRESTは RLS で UPDATE/DELETE が拒否された場合、status 200 + 空配列を返してerrorにならない。`if (!error)` だけ見ている箇所は silent fail する可能性があり、UI が嘘をつく。
 - **概要**: コードベース全体で同種パターンを監査し、`.select()` で affected rows 検証を追加する。
@@ -206,3 +206,12 @@
   - `ListSelector.deleteList`、`renameList` などUPDATE系の監査
   - `TodoSection` のtodo update/delete系の監査
   - エラーUIの共通化検討（現状 `window.alert` で場当たり対応）
+
+### PBI-020: Mono/Natural テーマで Todo 削除ボタンが透明
+- **優先度**: 🟡 中
+- **ステータス**: `TODO`
+- **目的**: Natural / Mono テーマで Todo 行の ✕ ボタンが `opacity: 0` のまま表示されず、Todo を削除できない。Brutal テーマだけ常時表示で動作する。PBI-019 の本番 E2E 検証時に発覚。
+- **概要**: `globals.css` の `.theme-delete { opacity: 0 }` は `.group:hover` で表示する設計だが、`TodoItem.tsx` の親要素に `className="group"` が付いていないため hover でも見えない。
+- **要件**:
+  - `TodoItem.tsx` のカード親 div に `group` クラスを付ける、または `.theme-delete` の常時表示に変更
+  - リスト項目の Rename / Delete ボタンも同種の hover 表示パターンか確認し、同じ問題があれば併せて修正
