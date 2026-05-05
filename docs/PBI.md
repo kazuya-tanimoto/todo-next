@@ -198,7 +198,7 @@
 
 ### PBI-019: silent-failパターンの監査と修正
 - **優先度**: 🟡 中
-- **ステータス**: `DONE`
+- **ステータス**: `IN PROGRESS`
 - **依存**: なし（PBI-004の修正PRで TrashView 部分は対応済み）
 - **目的**: PostgRESTは RLS で UPDATE/DELETE が拒否された場合、status 200 + 空配列を返してerrorにならない。`if (!error)` だけ見ている箇所は silent fail する可能性があり、UI が嘘をつく。
 - **概要**: コードベース全体で同種パターンを監査し、`.select()` で affected rows 検証を追加する。
