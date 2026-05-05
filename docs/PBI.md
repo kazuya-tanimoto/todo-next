@@ -187,7 +187,7 @@
 
 ### PBI-018: Claude Code hooksで品質ゲート整備
 - **優先度**: 🟡 中
-- **ステータス**: `TODO`
+- **ステータス**: `DONE`
 - **目的**: PBI-004本番E2E検証時、`yarn typecheck` 未実行で型エラーが放置されたり、共有メンバー視点のシナリオを試さずに silent fail バグを見逃したりする事例が発生。CLAUDE.mdの指示は約7割しか守られないため、hookで仕組み化して100%の品質ゲートにする。
 - **概要**: PostToolUse / Stop hookでtypecheck・testを自動実行し、失敗時はClaudeをブロックする。
 - **要件**:

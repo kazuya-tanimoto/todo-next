@@ -6,9 +6,35 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx eslint --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true",
+            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty'); [ -n \"$FILE_PATH\" ] && npx eslint --fix \"$FILE_PATH\" 2>/dev/null || true",
             "timeout": 30,
             "statusMessage": "Running ESLint..."
+          },
+          {
+            "type": "command",
+            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty'); case \"$FILE_PATH\" in *.ts|*.tsx) yarn typecheck 1>&2 || exit 2 ;; esac",
+            "timeout": 60,
+            "statusMessage": "Running typecheck..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "yarn typecheck && yarn test || exit 2",
+            "timeout": 120,
+            "statusMessage": "Running typecheck + tests..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a quality auditor. Evaluate whether the assistant's response in this turn declares a PBI as complete.\n\nPBI completion declaration patterns:\n- \"PBI-XXX 完了\" / \"PBI-XXX を完了\"\n- \"DONE にしました\" / \"DONE に更新しました\"\n- PBI.md のステータスを TODO/IN PROGRESS から DONE に変更する編集\n- その他の完了報告に該当する文言\n\nIf no PBI completion is declared in this turn, respond with: {\"ok\": true}\n\nIf a PBI completion IS declared, first classify the PBI by reading docs/PBI.md and the conversation context:\n\nType A (Infrastructure / dev-tooling PBI): Does NOT change user-facing app behavior. Examples:\n- Hook / CI / build / lint config changes (e.g., PBI-018)\n- Dev-only tool migration (e.g., ESLint → Biome, PBI-014)\n- Library updates without user-visible behavior change (e.g., PBI-015)\n- Test infrastructure (e.g., PBI-017 E2E test setup)\n\nType B (Feature / behavior PBI): Changes user-facing app behavior, DB schema, runtime logic, or visible UI. Most PBIs in the \"新機能\" section are Type B.\n\nIf unclear, default to Type B (safer side requires more verification).\n\nFor Type A, TESTING.md 4-stage check is NOT applicable. Respond with: {\"ok\": true, \"reason\": \"Type A (infrastructure) PBI のため4工程チェック対象外\"}\n\nFor Type B, verify the conversation (this turn or recent turns) explicitly shows all 4 stages from docs/TESTING.md being completed:\n1. ユニットテスト — Vitest を実行し pass を確認\n2. ローカルE2E — MCP Playwright + ローカルSupabase でブラウザ操作検証\n3. デプロイ — git push origin main → Vercel 自動デプロイ → デプロイ成功を確認\n4. 本番E2E検証 — 本番URL で実機ブラウザ操作で動作確認\n\nIf any of the 4 stages is missing, not executed, or not explicitly verified, respond with:\n{\"ok\": false, \"reason\": \"[未実施の工程名] が未消化のままPBI完了宣言されています。TESTING.md の4工程（ユニットテスト/ローカルE2E/デプロイ/本番E2E）を全て実施してから完了宣言してください。検証後は、初回回答の完全版を再掲すること（修正がない場合も含む）。差分報告や訂正箇所のみの返答で終わらせないこと。\"}\n\nIf all 4 stages are explicitly confirmed, respond with: {\"ok\": true}"
           }
         ]
       }
