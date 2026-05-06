@@ -46,3 +46,9 @@ next-env.d.ts
 
 # serena MCP
 .serena/
+
+# claude code (local)
+.claude/settings.local.json
+
+# JetBrains IDE
+.idea/
