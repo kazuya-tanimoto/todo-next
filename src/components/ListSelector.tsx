@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
-import { silentFailAlert } from "@/lib/errors";
-import { List } from "@/types";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ShareDialog from "@/components/ShareDialog";
+import { silentFailAlert } from "@/lib/errors";
+import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
+import type { List } from "@/types";
 import ListItem from "./ListItem";
 
 interface Props {
@@ -19,9 +19,7 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
   const [newListName, setNewListName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [shareDialogListId, setShareDialogListId] = useState<string | null>(
-    null
-  );
+  const [shareDialogListId, setShareDialogListId] = useState<string | null>(null);
 
   const selectedListIdRef = useRef(selectedListId);
   selectedListIdRef.current = selectedListId;
@@ -52,11 +50,7 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
       // Fetch owner display names for shared lists
       if (user) {
         const sharedOwnerIds = [
-          ...new Set(
-            data
-              .filter((l) => l.user_id !== user.id)
-              .map((l) => l.user_id)
-          ),
+          ...new Set(data.filter((l) => l.user_id !== user.id).map((l) => l.user_id)),
         ];
         if (sharedOwnerIds.length > 0) {
           const { data: profiles } = await supabase
@@ -87,62 +81,46 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
 
       channel = supabase
         .channel("lists")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "lists" },
-          (payload) => {
-            if (payload.eventType === "INSERT") {
-              const newList = payload.new as List;
-              setLists((prev) =>
-                prev.some((l) => l.id === newList.id)
-                  ? prev
-                  : [...prev, newList]
-              );
-            } else if (payload.eventType === "UPDATE") {
-              const updated = payload.new as List;
-              if (updated.deleted_at) {
-                // ソフトデリートされたらリストから除外
-                setLists((prev) => {
-                  const remaining = prev.filter((l) => l.id !== updated.id);
-                  if (selectedListIdRef.current === updated.id) {
-                    onSelectListRef.current(
-                      remaining.length > 0 ? remaining[0].id : null
-                    );
-                  }
-                  return remaining;
-                });
-              } else {
-                // 復元または通常更新
-                setLists((prev) => {
-                  const exists = prev.some((l) => l.id === updated.id);
-                  if (exists) {
-                    return prev.map((l) => (l.id === updated.id ? updated : l));
-                  }
-                  // ゴミ箱から復元された場合、リストに追加
-                  return [...prev, updated];
-                });
-              }
-            } else if (payload.eventType === "DELETE") {
-              const deleted = payload.old as { id: string };
+        .on("postgres_changes", { event: "*", schema: "public", table: "lists" }, (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newList = payload.new as List;
+            setLists((prev) => (prev.some((l) => l.id === newList.id) ? prev : [...prev, newList]));
+          } else if (payload.eventType === "UPDATE") {
+            const updated = payload.new as List;
+            if (updated.deleted_at) {
+              // ソフトデリートされたらリストから除外
               setLists((prev) => {
-                const remaining = prev.filter((l) => l.id !== deleted.id);
-                if (selectedListIdRef.current === deleted.id) {
-                  onSelectListRef.current(
-                    remaining.length > 0 ? remaining[0].id : null
-                  );
+                const remaining = prev.filter((l) => l.id !== updated.id);
+                if (selectedListIdRef.current === updated.id) {
+                  onSelectListRef.current(remaining.length > 0 ? remaining[0].id : null);
                 }
                 return remaining;
               });
+            } else {
+              // 復元または通常更新
+              setLists((prev) => {
+                const exists = prev.some((l) => l.id === updated.id);
+                if (exists) {
+                  return prev.map((l) => (l.id === updated.id ? updated : l));
+                }
+                // ゴミ箱から復元された場合、リストに追加
+                return [...prev, updated];
+              });
             }
+          } else if (payload.eventType === "DELETE") {
+            const deleted = payload.old as { id: string };
+            setLists((prev) => {
+              const remaining = prev.filter((l) => l.id !== deleted.id);
+              if (selectedListIdRef.current === deleted.id) {
+                onSelectListRef.current(remaining.length > 0 ? remaining[0].id : null);
+              }
+              return remaining;
+            });
           }
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "list_shares" },
-          () => {
-            fetchLists();
-          }
-        )
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "list_shares" }, () => {
+          fetchLists();
+        })
         .subscribe();
     };
 
@@ -199,11 +177,7 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
       silentFailAlert("リスト名の変更");
       return;
     }
-    setLists(
-      lists.map((l) =>
-        l.id === id ? { ...l, name: editingName.trim() } : l
-      )
-    );
+    setLists(lists.map((l) => (l.id === id ? { ...l, name: editingName.trim() } : l)));
   };
 
   const deleteList = async (id: string) => {
@@ -244,16 +218,12 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
   const shareDialogList = lists.find((l) => l.id === shareDialogListId);
 
   if (isLoading) {
-    return (
-      <div className="mb-6 text-[var(--fg-secondary)]">Loading lists...</div>
-    );
+    return <div className="mb-6 text-[var(--fg-secondary)]">Loading lists...</div>;
   }
 
   return (
     <div className="mb-6">
-      <p className="text-sm font-medium text-[var(--fg-secondary)] mb-2">
-        Lists
-      </p>
+      <p className="text-sm font-medium text-[var(--fg-secondary)] mb-2">Lists</p>
 
       {/* List items */}
       <div className="flex flex-wrap gap-2 mb-3">
@@ -263,9 +233,7 @@ export default function ListSelector({ selectedListId, onSelectList }: Props) {
             list={list}
             isSelected={selectedListId === list.id}
             isOwner={isOwner(list)}
-            ownerName={
-              !isOwner(list) ? ownerNames[list.user_id] ?? null : null
-            }
+            ownerName={!isOwner(list) ? (ownerNames[list.user_id] ?? null) : null}
             isEditing={editingId === list.id}
             editingName={editingName}
             onSelect={onSelectList}

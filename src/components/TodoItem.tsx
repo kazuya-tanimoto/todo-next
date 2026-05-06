@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Todo } from "@/types";
-import { TAG_COLORS, TagColorKey } from "@/lib/tagColors";
+import { useEffect, useState } from "react";
+import { TAG_COLORS, type TagColorKey } from "@/lib/tagColors";
+import type { Todo } from "@/types";
 
 interface Props {
   todo: Todo;
@@ -23,21 +23,15 @@ export default function TodoItem({
   onUpdateText,
   onUpdateDescription,
 }: Props) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: todo.id, disabled: !isDraggable });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: todo.id,
+    disabled: !isDraggable,
+  });
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [textDraft, setTextDraft] = useState(todo.text);
-  const [descriptionDraft, setDescriptionDraft] = useState(
-    todo.description ?? ""
-  );
+  const [descriptionDraft, setDescriptionDraft] = useState(todo.description ?? "");
 
   useEffect(() => {
     if (isDragging) setIsExpanded(false);
@@ -202,9 +196,7 @@ export default function TodoItem({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`transition-transform duration-200 ${
-                isExpanded ? "rotate-180" : ""
-              }`}
+              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>

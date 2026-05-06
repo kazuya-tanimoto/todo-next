@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 import { silentFailAlert } from "@/lib/errors";
-import { InviteToken, ListMember } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import type { InviteToken, ListMember } from "@/types";
 
 interface Props {
   listId: string;
@@ -13,13 +13,7 @@ interface Props {
   onLeave?: () => void;
 }
 
-export default function ShareDialog({
-  listId,
-  listName,
-  isOwner,
-  onClose,
-  onLeave,
-}: Props) {
+export default function ShareDialog({ listId, listName, isOwner, onClose, onLeave }: Props) {
   const [members, setMembers] = useState<ListMember[]>([]);
   const [invites, setInvites] = useState<InviteToken[]>([]);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
@@ -145,9 +139,7 @@ export default function ShareDialog({
     >
       <div className="theme-card p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">
-            {isOwner ? "共有設定" : "共有リスト"}
-          </h2>
+          <h2 className="text-lg font-bold">{isOwner ? "共有設定" : "共有リスト"}</h2>
           <button
             onClick={onClose}
             className="text-[var(--fg-secondary)] hover:text-[var(--fg)] text-xl"
@@ -216,9 +208,7 @@ export default function ShareDialog({
             メンバー ({members.length})
           </p>
           {members.length === 0 ? (
-            <p className="text-sm text-[var(--fg-secondary)]">
-              まだメンバーがいません
-            </p>
+            <p className="text-sm text-[var(--fg-secondary)]">まだメンバーがいません</p>
           ) : (
             <ul className="space-y-2">
               {members.map((member) => (
@@ -251,10 +241,7 @@ export default function ShareDialog({
 
         {/* Leave button (non-owner only) */}
         {!isOwner && (
-          <button
-            onClick={handleLeave}
-            className="theme-btn px-4 py-2 text-sm w-full text-red-500"
-          >
+          <button onClick={handleLeave} className="theme-btn px-4 py-2 text-sm w-full text-red-500">
             このリストから離脱
           </button>
         )}

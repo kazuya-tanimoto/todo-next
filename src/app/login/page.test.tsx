@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import LoginPage from "./page";
 
 const mockSignInWithOAuth = vi.fn();
@@ -23,12 +23,8 @@ describe("Login page", () => {
 
   it("renders login heading and Google login button", () => {
     render(<LoginPage />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Todo"
-    );
-    expect(
-      screen.getByRole("button", { name: /Google/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Todo");
+    expect(screen.getByRole("button", { name: /Google/i })).toBeInTheDocument();
   });
 
   it("calls signInWithOAuth with google provider on button click", async () => {

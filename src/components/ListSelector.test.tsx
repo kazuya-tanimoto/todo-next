@@ -33,9 +33,7 @@ vi.mock("@/lib/supabase/client", () => ({
   ensureRealtimeAuth: vi.fn().mockResolvedValue(undefined),
   createClient: () => ({
     auth: {
-      getUser: vi
-        .fn()
-        .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
     },
     from: (table: string) => {
       if (table === "profiles") {
@@ -107,9 +105,7 @@ describe("ListSelector", () => {
 
   it("does not auto-select when a list is already selected", async () => {
     const onSelectList = vi.fn();
-    render(
-      <ListSelector selectedListId="list-2" onSelectList={onSelectList} />
-    );
+    render(<ListSelector selectedListId="list-2" onSelectList={onSelectList} />);
 
     await waitFor(() => {
       expect(screen.getByText("Groceries")).toBeInTheDocument();
@@ -120,9 +116,7 @@ describe("ListSelector", () => {
   it("selects a list when clicked", async () => {
     const user = userEvent.setup();
     const onSelectList = vi.fn();
-    render(
-      <ListSelector selectedListId="list-1" onSelectList={onSelectList} />
-    );
+    render(<ListSelector selectedListId="list-1" onSelectList={onSelectList} />);
 
     await waitFor(() => {
       expect(screen.getByText("Work")).toBeInTheDocument();
@@ -143,9 +137,7 @@ describe("ListSelector", () => {
     };
     mockSingle.mockResolvedValue({ data: newList, error: null });
 
-    render(
-      <ListSelector selectedListId="list-1" onSelectList={onSelectList} />
-    );
+    render(<ListSelector selectedListId="list-1" onSelectList={onSelectList} />);
 
     await waitFor(() => {
       expect(screen.getByText("Groceries")).toBeInTheDocument();
@@ -166,9 +158,7 @@ describe("ListSelector", () => {
     const user = userEvent.setup();
     mockUpdateResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
 
-    render(
-      <ListSelector selectedListId="list-1" onSelectList={() => {}} />
-    );
+    render(<ListSelector selectedListId="list-1" onSelectList={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByText("Groceries")).toBeInTheDocument();
@@ -192,9 +182,7 @@ describe("ListSelector", () => {
     const onSelectList = vi.fn();
     mockUpdateResult.mockResolvedValue({ data: [{ id: "list-1" }], error: null });
 
-    render(
-      <ListSelector selectedListId="list-1" onSelectList={onSelectList} />
-    );
+    render(<ListSelector selectedListId="list-1" onSelectList={onSelectList} />);
 
     await waitFor(() => {
       expect(screen.getByText("Groceries")).toBeInTheDocument();
@@ -227,9 +215,7 @@ describe("ListSelector", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("リスト名の変更")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("リスト名の変更"));
     });
     // Original name remains because optimistic update was skipped
     expect(screen.getByText("Groceries")).toBeInTheDocument();
@@ -252,9 +238,7 @@ describe("ListSelector", () => {
     await user.click(screen.getByLabelText("Delete Groceries"));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("リストの削除")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("リストの削除"));
     });
     expect(screen.getByText("Groceries")).toBeInTheDocument();
   });
@@ -275,17 +259,13 @@ describe("ListSelector", () => {
       error: null,
     });
 
-    render(
-      <ListSelector selectedListId="list-1" onSelectList={() => {}} />
-    );
+    render(<ListSelector selectedListId="list-1" onSelectList={() => {}} />);
 
     await waitFor(() => {
       expect(screen.getByText("Shared List")).toBeInTheDocument();
     });
     // Owner name shown as tooltip on share icon, not inline
-    expect(
-      screen.getByTitle("Shared by Alice")
-    ).toBeInTheDocument();
+    expect(screen.getByTitle("Shared by Alice")).toBeInTheDocument();
   });
 
   it("renders empty state with only the new list form", async () => {
@@ -294,9 +274,7 @@ describe("ListSelector", () => {
     render(<ListSelector selectedListId={null} onSelectList={() => {}} />);
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("New list name...")
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("New list name...")).toBeInTheDocument();
     });
 
     expect(screen.getByText("Lists")).toBeInTheDocument();

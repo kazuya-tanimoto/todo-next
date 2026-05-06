@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 import { silentFailAlert } from "@/lib/errors";
-import { Todo, List } from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import type { List, Todo } from "@/types";
 
 interface Props {
   onClose: () => void;
@@ -47,9 +47,7 @@ export default function TrashView({ onClose }: Props) {
         .order("deleted_at", { ascending: false }),
     ]);
 
-    const allDeletedTodos = (todosResult.data ?? []).map(
-      ({ lists: _lists, ...t }) => t as Todo
-    );
+    const allDeletedTodos = (todosResult.data ?? []).map(({ lists: _lists, ...t }) => t as Todo);
     const allDeletedLists = listsResult.data ?? [];
 
     // リストごとのtodosをグルーピング
@@ -60,9 +58,7 @@ export default function TrashView({ onClose }: Props) {
     }));
 
     // リストが削除されていない単独削除のtodos
-    const orphanTodos = allDeletedTodos.filter(
-      (t) => !deletedListIds.has(t.list_id)
-    );
+    const orphanTodos = allDeletedTodos.filter((t) => !deletedListIds.has(t.list_id));
 
     setDeletedLists(listsWithTodos);
     setDeletedTodos(orphanTodos);
@@ -92,17 +88,13 @@ export default function TrashView({ onClose }: Props) {
       prev.map((l) => ({
         ...l,
         todos: l.todos.filter((t) => t.id !== id),
-      }))
+      })),
     );
   };
 
   const permanentDeleteTodo = async (id: string) => {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("todos")
-      .delete()
-      .eq("id", id)
-      .select();
+    const { data, error } = await supabase.from("todos").delete().eq("id", id).select();
 
     if (error || !data || data.length === 0) {
       silentFailAlert("Todoの完全削除");
@@ -113,7 +105,7 @@ export default function TrashView({ onClose }: Props) {
       prev.map((l) => ({
         ...l,
         todos: l.todos.filter((t) => t.id !== id),
-      }))
+      })),
     );
   };
 
@@ -134,15 +126,10 @@ export default function TrashView({ onClose }: Props) {
   };
 
   const permanentDeleteList = async (id: string) => {
-    if (!window.confirm("このリストを完全に削除しますか？元に戻せません。"))
-      return;
+    if (!window.confirm("このリストを完全に削除しますか？元に戻せません。")) return;
 
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("lists")
-      .delete()
-      .eq("id", id)
-      .select();
+    const { data, error } = await supabase.from("lists").delete().eq("id", id).select();
 
     if (error || !data || data.length === 0) {
       silentFailAlert("リストの完全削除");
@@ -152,8 +139,7 @@ export default function TrashView({ onClose }: Props) {
   };
 
   const emptyTrash = async () => {
-    if (!window.confirm("ゴミ箱を空にしますか？すべてのアイテムが完全に削除されます。"))
-      return;
+    if (!window.confirm("ゴミ箱を空にしますか？すべてのアイテムが完全に削除されます。")) return;
 
     const supabase = createClient();
 
@@ -161,11 +147,7 @@ export default function TrashView({ onClose }: Props) {
     const todoIds = deletedTodos.map((t) => t.id);
     let todosDeleted = 0;
     if (todoIds.length > 0) {
-      const { data, error } = await supabase
-        .from("todos")
-        .delete()
-        .in("id", todoIds)
-        .select();
+      const { data, error } = await supabase.from("todos").delete().in("id", todoIds).select();
       if (!error && data) todosDeleted = data.length;
     }
 
@@ -173,11 +155,7 @@ export default function TrashView({ onClose }: Props) {
     const listIds = deletedLists.map((l) => l.id);
     let listsDeleted = 0;
     if (listIds.length > 0) {
-      const { data, error } = await supabase
-        .from("lists")
-        .delete()
-        .in("id", listIds)
-        .select();
+      const { data, error } = await supabase.from("lists").delete().in("id", listIds).select();
       if (!error && data) listsDeleted = data.length;
     }
 
@@ -206,17 +184,13 @@ export default function TrashView({ onClose }: Props) {
     deletedLists.length;
 
   if (isLoading) {
-    return (
-      <div className="text-[var(--fg-secondary)]">Loading trash...</div>
-    );
+    return <div className="text-[var(--fg-secondary)]">Loading trash...</div>;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">
-          Trash
-        </h2>
+        <h2 className="text-lg font-bold">Trash</h2>
         <button
           onClick={onClose}
           className="text-sm text-[var(--fg-secondary)] hover:text-[var(--fg)] transition-colors"
@@ -226,9 +200,7 @@ export default function TrashView({ onClose }: Props) {
       </div>
 
       {totalCount === 0 ? (
-        <p className="text-[var(--fg-secondary)] text-sm">
-          Trash is empty
-        </p>
+        <p className="text-[var(--fg-secondary)] text-sm">Trash is empty</p>
       ) : (
         <>
           <p className="text-xs text-[var(--fg-secondary)] mb-4">
@@ -276,7 +248,9 @@ export default function TrashView({ onClose }: Props) {
               <div className="theme-card p-3">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <span className={todo.completed ? "line-through text-[var(--fg-secondary)]" : ""}>
+                    <span
+                      className={todo.completed ? "line-through text-[var(--fg-secondary)]" : ""}
+                    >
                       {todo.text}
                     </span>
                     <span className="text-xs text-[var(--fg-secondary)] ml-2">
@@ -304,10 +278,7 @@ export default function TrashView({ onClose }: Props) {
 
           {/* ゴミ箱を空にする */}
           <div className="mt-6">
-            <button
-              onClick={emptyTrash}
-              className="theme-delete px-4 py-2 text-sm"
-            >
+            <button onClick={emptyTrash} className="theme-delete px-4 py-2 text-sm">
               Empty trash
             </button>
           </div>

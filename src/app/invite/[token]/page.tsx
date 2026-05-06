@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InvitePage() {
@@ -80,18 +80,13 @@ export default function InvitePage() {
         {error ? (
           <>
             <p className="text-red-500 mb-6">{error}</p>
-            <button
-              onClick={() => router.push("/")}
-              className="theme-btn px-6 py-3 w-full"
-            >
+            <button onClick={() => router.push("/")} className="theme-btn px-6 py-3 w-full">
               ホームに戻る
             </button>
           </>
         ) : (
           <>
-            <p className="text-[var(--fg-secondary)] mb-2">
-              以下のリストに参加しますか？
-            </p>
+            <p className="text-[var(--fg-secondary)] mb-2">以下のリストに参加しますか？</p>
             <p className="text-xl font-bold mb-6">{listName}</p>
             <button
               onClick={handleAccept}

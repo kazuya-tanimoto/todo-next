@@ -1,6 +1,6 @@
 "use client";
 
-import { Theme } from "@/types";
+import type { Theme } from "@/types";
 
 const themes: { id: Theme; name: string; description: string; preview: string[] }[] = [
   {
@@ -37,9 +37,7 @@ export default function ThemeSwitcher({ theme, onThemeChange }: Props) {
           <button
             key={t.id}
             onClick={() => onThemeChange(t.id)}
-            className={`theme-option flex-1 p-3 text-left ${
-              theme === t.id ? "active" : ""
-            }`}
+            className={`theme-option flex-1 p-3 text-left ${theme === t.id ? "active" : ""}`}
           >
             <div className="flex gap-1 mb-2">
               {t.preview.map((color, i) => (

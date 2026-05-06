@@ -1,5 +1,5 @@
-import { Tag } from "@/types";
-import { TAG_COLORS, TagColorKey } from "@/lib/tagColors";
+import { TAG_COLORS, type TagColorKey } from "@/lib/tagColors";
+import type { Tag } from "@/types";
 
 interface Props {
   tags: Tag[];

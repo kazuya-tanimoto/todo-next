@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
           });
         },
       },
-    }
+    },
   );
 
   const {
@@ -52,10 +52,7 @@ export async function proxy(request: NextRequest) {
   // Profile setup check: redirect to /profile/setup if no profile exists
   const PROFILE_SKIP_PATHS = ["/login", "/auth", "/profile/setup", "/invite"];
   const shouldCheckProfile =
-    user &&
-    !PROFILE_SKIP_PATHS.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
-    );
+    user && !PROFILE_SKIP_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (shouldCheckProfile) {
     const { data: profile } = await supabase
@@ -79,7 +76,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
 };

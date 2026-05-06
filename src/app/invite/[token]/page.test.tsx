@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import InvitePage from "./page";
 
 const mockPush = vi.fn();
@@ -32,9 +32,7 @@ describe("Invite page", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Shopping")).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "参加する" })
-      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "参加する" })).toBeInTheDocument();
     });
 
     expect(mockRpc).toHaveBeenCalledWith("get_invite_info", {
@@ -51,9 +49,7 @@ describe("Invite page", () => {
     render(<InvitePage />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("この招待リンクは無効または期限切れです。")
-      ).toBeInTheDocument();
+      expect(screen.getByText("この招待リンクは無効または期限切れです。")).toBeInTheDocument();
     });
   });
 
@@ -105,9 +101,7 @@ describe("Invite page", () => {
     await user.click(screen.getByRole("button", { name: "参加する" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("自分のリストには参加できません。")
-      ).toBeInTheDocument();
+      expect(screen.getByText("自分のリストには参加できません。")).toBeInTheDocument();
     });
   });
 });

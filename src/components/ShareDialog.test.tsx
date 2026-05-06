@@ -1,13 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ShareDialog from "./ShareDialog";
 
 const mockRpc = vi.fn();
 const mockFrom = vi.fn();
-const mockGetUser = vi
-  .fn()
-  .mockResolvedValue({ data: { user: { id: "user-1" } } });
+const mockGetUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } });
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
@@ -16,7 +14,6 @@ vi.mock("@/lib/supabase/client", () => ({
     from: mockFrom,
   }),
 }));
-
 
 describe("ShareDialog", () => {
   const defaultProps = {
@@ -81,18 +78,14 @@ describe("ShareDialog", () => {
 
   it("shows invite link creation button for owner", () => {
     render(<ShareDialog {...defaultProps} />);
-    expect(
-      screen.getByRole("button", { name: /招待リンクを作成/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /招待リンクを作成/ })).toBeInTheDocument();
   });
 
   it("creates invite link and shows copied state", async () => {
     const user = userEvent.setup();
     render(<ShareDialog {...defaultProps} />);
 
-    await user.click(
-      screen.getByRole("button", { name: /招待リンクを作成/ })
-    );
+    await user.click(screen.getByRole("button", { name: /招待リンクを作成/ }));
 
     await waitFor(() => {
       expect(screen.getByText("Copied!")).toBeInTheDocument();
@@ -162,7 +155,12 @@ describe("ShareDialog", () => {
   it("shows member list and leave button for non-owner", async () => {
     mockRpc.mockResolvedValue({
       data: [
-        { user_id: "user-owner", email: "owner@example.com", display_name: "オーナーさん", is_owner: true },
+        {
+          user_id: "user-owner",
+          email: "owner@example.com",
+          display_name: "オーナーさん",
+          is_owner: true,
+        },
         { user_id: "user-1", email: "me@example.com", display_name: "自分", is_owner: false },
       ],
     });
@@ -174,9 +172,7 @@ describe("ShareDialog", () => {
       expect(screen.getByText("自分")).toBeInTheDocument();
     });
     expect(screen.getByText("共有リスト")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /離脱/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /離脱/ })).toBeInTheDocument();
     // Non-owner should not see remove buttons
     expect(screen.queryByLabelText(/Remove/)).not.toBeInTheDocument();
   });
@@ -228,9 +224,7 @@ describe("ShareDialog", () => {
     await user.click(screen.getByLabelText("Remove m@example.com"));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("メンバーの削除")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("メンバーの削除"));
     });
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
@@ -263,9 +257,7 @@ describe("ShareDialog", () => {
     await user.click(screen.getByRole("button", { name: /離脱/ }));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("リストからの離脱")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("リストからの離脱"));
     });
     expect(onLeave).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
@@ -291,9 +283,7 @@ describe("ShareDialog", () => {
       }),
     });
 
-    await user.click(
-      screen.getByRole("button", { name: /離脱/ })
-    );
+    await user.click(screen.getByRole("button", { name: /離脱/ }));
 
     await waitFor(() => {
       expect(defaultProps.onLeave).toHaveBeenCalled();

@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
+import { useEffect, useMemo, useState } from "react";
 import { silentFailAlert } from "@/lib/errors";
-import { Todo, Tag, SortMode } from "@/types";
-import { TagColorKey } from "@/lib/tagColors";
-import TodoList from "./TodoList";
+import { createClient, ensureRealtimeAuth } from "@/lib/supabase/client";
+import type { TagColorKey } from "@/lib/tagColors";
+import type { SortMode, Tag, Todo } from "@/types";
+import SortSelector from "./SortSelector";
 import TagFilter from "./TagFilter";
 import TagSelector from "./TagSelector";
-import SortSelector from "./SortSelector";
+import TodoList from "./TodoList";
 
 interface Props {
   selectedListId: string | null;
@@ -45,10 +45,7 @@ export default function TodoSection({ selectedListId }: Props) {
     let tagsChannel: ReturnType<typeof supabase.channel> | null = null;
     let todoTagsChannel: ReturnType<typeof supabase.channel> | null = null;
 
-    const hydrateTodoTags = async (
-      todosToHydrate: Todo[],
-      tagsForList: Tag[]
-    ): Promise<Todo[]> => {
+    const hydrateTodoTags = async (todosToHydrate: Todo[], tagsForList: Tag[]): Promise<Todo[]> => {
       if (todosToHydrate.length === 0) return todosToHydrate;
 
       const todoIds = todosToHydrate.map((t) => t.id);
@@ -136,9 +133,7 @@ export default function TodoSection({ selectedListId }: Props) {
                 setTodos((prev) => {
                   const exists = prev.some((t) => t.id === updated.id);
                   if (exists) {
-                    const next = prev.map((t) =>
-                      t.id === updated.id ? { ...t, ...updated } : t
-                    );
+                    const next = prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t));
                     return next.sort((a, b) => a.position - b.position);
                   }
                   // ゴミ箱から復元された場合、リストに追加
@@ -152,7 +147,7 @@ export default function TodoSection({ selectedListId }: Props) {
               const deleted = payload.old as { id: string };
               setTodos((prev) => prev.filter((t) => t.id !== deleted.id));
             }
-          }
+          },
         )
         .subscribe();
 
@@ -170,23 +165,15 @@ export default function TodoSection({ selectedListId }: Props) {
           (payload) => {
             if (payload.eventType === "INSERT") {
               const newTag = payload.new as Tag;
-              setTags((prev) =>
-                prev.some((t) => t.id === newTag.id)
-                  ? prev
-                  : [...prev, newTag]
-              );
+              setTags((prev) => (prev.some((t) => t.id === newTag.id) ? prev : [...prev, newTag]));
             } else if (payload.eventType === "UPDATE") {
               const updated = payload.new as Tag;
-              setTags((prev) =>
-                prev.map((t) => (t.id === updated.id ? updated : t))
-              );
+              setTags((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
               setTodos((prev) =>
                 prev.map((todo) => ({
                   ...todo,
-                  tags: todo.tags?.map((t) =>
-                    t.id === updated.id ? updated : t
-                  ),
-                }))
+                  tags: todo.tags?.map((t) => (t.id === updated.id ? updated : t)),
+                })),
               );
             } else if (payload.eventType === "DELETE") {
               const deleted = payload.old as { id: string };
@@ -200,10 +187,10 @@ export default function TodoSection({ selectedListId }: Props) {
                 prev.map((todo) => ({
                   ...todo,
                   tags: todo.tags?.filter((t) => t.id !== deleted.id),
-                }))
+                })),
               );
             }
-          }
+          },
         )
         .subscribe();
 
@@ -236,16 +223,14 @@ export default function TodoSection({ selectedListId }: Props) {
                       .map((tt) => tagMap.get(tt.tag_id))
                       .filter((t): t is Tag => !!t);
                     setTodos((p) =>
-                      p.map((t) =>
-                        t.id === todoId ? { ...t, tags: todoTagList } : t
-                      )
+                      p.map((t) => (t.id === todoId ? { ...t, tags: todoTagList } : t)),
                     );
                     return currentTags;
                   });
                 });
               return prev;
             });
-          }
+          },
         )
         .subscribe();
     };
@@ -265,9 +250,7 @@ export default function TodoSection({ selectedListId }: Props) {
     if (!inputValue.trim() || !selectedListId) return;
 
     const supabase = createClient();
-    const minPosition = todos.length > 0
-      ? Math.min(...todos.map((t) => t.position))
-      : 1000;
+    const minPosition = todos.length > 0 ? Math.min(...todos.map((t) => t.position)) : 1000;
     const newPosition = minPosition - 1000;
     const { data, error } = await supabase
       .from("todos")
@@ -284,9 +267,7 @@ export default function TodoSection({ selectedListId }: Props) {
         }));
         await supabase.from("todo_tags").insert(rows);
         const tagMap = new Map(tags.map((t) => [t.id, t]));
-        todoTags = pendingTagIds
-          .map((id) => tagMap.get(id))
-          .filter((t): t is Tag => !!t);
+        todoTags = pendingTagIds.map((id) => tagMap.get(id)).filter((t): t is Tag => !!t);
       }
       setTodos((prev) => [{ ...data, tags: todoTags }, ...prev]);
       setInputValue("");
@@ -309,9 +290,7 @@ export default function TodoSection({ selectedListId }: Props) {
       return;
     }
     setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !completed } : todo
-      )
+      prev.map((todo) => (todo.id === id ? { ...todo, completed: !completed } : todo)),
     );
   };
 
@@ -332,21 +311,13 @@ export default function TodoSection({ selectedListId }: Props) {
 
   const updateText = async (id: string, text: string) => {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("todos")
-      .update({ text })
-      .eq("id", id)
-      .select();
+    const { data, error } = await supabase.from("todos").update({ text }).eq("id", id).select();
 
     if (error || !data || data.length === 0) {
       silentFailAlert("Todoの更新");
       return;
     }
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, text } : todo
-      )
-    );
+    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, text } : todo)));
   };
 
   const updateDescription = async (id: string, description: string) => {
@@ -363,9 +334,7 @@ export default function TodoSection({ selectedListId }: Props) {
       return;
     }
     setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, description: newDescription } : todo
-      )
+      prev.map((todo) => (todo.id === id ? { ...todo, description: newDescription } : todo)),
     );
   };
 
@@ -426,17 +395,13 @@ export default function TodoSection({ selectedListId }: Props) {
       prev.map((todo) => ({
         ...todo,
         tags: todo.tags?.map((t) => (t.id === id ? data : t)),
-      }))
+      })),
     );
   };
 
   const deleteTag = async (id: string) => {
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("tags")
-      .delete()
-      .eq("id", id)
-      .select();
+    const { data, error } = await supabase.from("tags").delete().eq("id", id).select();
 
     if (error || !data || data.length === 0) {
       silentFailAlert("タグの削除");
@@ -452,7 +417,7 @@ export default function TodoSection({ selectedListId }: Props) {
       prev.map((todo) => ({
         ...todo,
         tags: todo.tags?.filter((t) => t.id !== id),
-      }))
+      })),
     );
   };
 
@@ -467,9 +432,7 @@ export default function TodoSection({ selectedListId }: Props) {
 
   const togglePendingTag = (tagId: string) => {
     setPendingTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
   };
 
@@ -513,12 +476,8 @@ export default function TodoSection({ selectedListId }: Props) {
         // warnのみに留める（PBI-019）。
         const results = await Promise.all(
           rebalanced.map((t) =>
-            supabase
-              .from("todos")
-              .update({ position: t.position })
-              .eq("id", t.id)
-              .select()
-          )
+            supabase.from("todos").update({ position: t.position }).eq("id", t.id).select(),
+          ),
         );
         for (const { data, error } of results) {
           if (error || !data || data.length === 0) {
@@ -531,9 +490,7 @@ export default function TodoSection({ selectedListId }: Props) {
     }
 
     // Optimistic update
-    const updated = reordered.map((t) =>
-      t.id === activeId ? { ...t, position: newPosition } : t
-    );
+    const updated = reordered.map((t) => (t.id === activeId ? { ...t, position: newPosition } : t));
     setTodos(updated);
 
     const supabase = createClient();
@@ -551,10 +508,8 @@ export default function TodoSection({ selectedListId }: Props) {
     () =>
       selectedTagIds.size === 0
         ? todos
-        : todos.filter((t) =>
-          t.tags?.some((tag) => selectedTagIds.has(tag.id))
-        ),
-    [todos, selectedTagIds]
+        : todos.filter((t) => t.tags?.some((tag) => selectedTagIds.has(tag.id))),
+    [todos, selectedTagIds],
   );
 
   const sortedTodos = useMemo(() => {
@@ -599,7 +554,19 @@ export default function TodoSection({ selectedListId }: Props) {
 
       {/* Tag Filter */}
       <div className="mb-2 text-sm font-medium text-[var(--fg-secondary)] flex items-center gap-1.5">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
         フィルター & タグ管理
       </div>
       <TagFilter
@@ -624,25 +591,30 @@ export default function TodoSection({ selectedListId }: Props) {
             placeholder="What needs to be done?"
             className="theme-input flex-1 px-4 py-3 text-lg"
           />
-          <button
-            type="submit"
-            className="theme-btn px-6 py-3"
-            disabled={!inputValue.trim()}
-          >
+          <button type="submit" className="theme-btn px-6 py-3" disabled={!inputValue.trim()}>
             Add
           </button>
         </div>
         {tags.length > 0 && (
           <div className="mt-3 mb-0.5 text-sm font-medium text-[var(--fg-secondary)] flex items-center gap-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+              <line x1="7" y1="7" x2="7.01" y2="7"></line>
+            </svg>
             追加するタグ
           </div>
         )}
-        <TagSelector
-          tags={tags}
-          selectedTagIds={pendingTagIds}
-          onToggle={togglePendingTag}
-        />
+        <TagSelector tags={tags} selectedTagIds={pendingTagIds} onToggle={togglePendingTag} />
       </form>
 
       {/* Todo List */}
@@ -660,10 +632,7 @@ export default function TodoSection({ selectedListId }: Props) {
       {/* Footer */}
       {completedCount > 0 && (
         <div className="mt-8">
-          <button
-            onClick={clearCompleted}
-            className="theme-btn px-4 py-2 text-sm"
-          >
+          <button onClick={clearCompleted} className="theme-btn px-4 py-2 text-sm">
             Clear completed ({completedCount})
           </button>
         </div>
