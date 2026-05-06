@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty'); [ -n \"$FILE_PATH\" ] && npx eslint --fix \"$FILE_PATH\" 2>/dev/null || true",
+            "command": "FILE_PATH=$(jq -r '.tool_input.file_path // empty'); [ -n \"$FILE_PATH\" ] && yarn biome check --write --no-errors-on-unmatched \"$FILE_PATH\" 2>/dev/null || true",
             "timeout": 30,
-            "statusMessage": "Running ESLint..."
+            "statusMessage": "Running Biome..."
           },
           {
             "type": "command",

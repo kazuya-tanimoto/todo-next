@@ -1,6 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "./page";
 
 vi.mock("next/navigation", () => ({
@@ -23,9 +22,7 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
       signOut: mockSignOut,
-      getUser: vi
-        .fn()
-        .mockResolvedValue({ data: { user: { id: "user-1" } } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
     },
     from: (table: string) => {
       if (table === "profiles") {
@@ -103,9 +100,7 @@ describe("Home page", () => {
   it("renders heading, theme switcher, list selector, and todo section", async () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole("heading", { level: 1 })
-    ).toHaveTextContent("Todo");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Todo");
 
     // ThemeSwitcher
     expect(screen.getByText("Mono")).toBeInTheDocument();
@@ -114,23 +109,17 @@ describe("Home page", () => {
 
     // ListSelector
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("New list name...")
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("New list name...")).toBeInTheDocument();
     });
 
     // TodoSection (no list selected → shows prompt)
-    expect(
-      screen.getByText("Select a list to get started")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Select a list to get started")).toBeInTheDocument();
   });
 
   it("renders logout button", async () => {
     render(<Home />);
 
-    expect(
-      screen.getByRole("button", { name: "ログアウト" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ログアウト" })).toBeInTheDocument();
   });
 
   it("shows todo input when a list is selected", async () => {
@@ -147,13 +136,9 @@ describe("Home page", () => {
 
     // ListSelector auto-selects the first list, TodoSection loads
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("What needs to be done?")
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("What needs to be done?")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText("No tasks yet. Add something!")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No tasks yet. Add something!")).toBeInTheDocument();
   });
 });

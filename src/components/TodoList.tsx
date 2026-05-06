@@ -1,17 +1,14 @@
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { Todo, SortMode } from "@/types";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import type { SortMode, Todo } from "@/types";
 import TodoItem from "./TodoItem";
 
 interface Props {
@@ -37,24 +34,18 @@ export default function TodoList({
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   );
 
   if (isLoading) {
-    return (
-      <div className="py-8 text-center text-[var(--fg-secondary)]">
-        Loading...
-      </div>
-    );
+    return <div className="py-8 text-center text-[var(--fg-secondary)]">Loading...</div>;
   }
 
   if (todos.length === 0) {
     return (
       <div className="theme-card p-8 text-center">
         <div className="mb-2 text-4xl">📝</div>
-        <p className="text-[var(--fg-secondary)]">
-          Empty list. Time to add tasks!
-        </p>
+        <p className="text-[var(--fg-secondary)]">Empty list. Time to add tasks!</p>
       </div>
     );
   }
@@ -85,15 +76,8 @@ export default function TodoList({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={todos.map((t) => t.id)}
-        strategy={verticalListSortingStrategy}
-      >
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={todos.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">{items}</div>
       </SortableContext>
     </DndContext>

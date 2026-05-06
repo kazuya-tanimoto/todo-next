@@ -1,8 +1,8 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,12 +34,8 @@ function LoginForm() {
 
   return (
     <div className="theme-card p-8 w-full max-w-sm text-center">
-      <h1 className="text-3xl font-black uppercase tracking-tight mb-2">
-        Todo
-      </h1>
-      <p className="text-[var(--fg-secondary)] mb-8">
-        ログインして始めましょう
-      </p>
+      <h1 className="text-3xl font-black uppercase tracking-tight mb-2">Todo</h1>
+      <p className="text-[var(--fg-secondary)] mb-8">ログインして始めましょう</p>
 
       {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 

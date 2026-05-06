@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const DISPLAY_NAME_MAX_LENGTH = 30;
@@ -118,11 +118,7 @@ function ProfileSetupForm() {
 
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="theme-btn w-full px-6 py-3"
-        >
+        <button type="submit" disabled={isSaving} className="theme-btn w-full px-6 py-3">
           {isSaving ? "保存中..." : "保存"}
         </button>
       </form>

@@ -117,6 +117,7 @@ supabase/
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート
 vitest.config.ts           # テスト設定
+biome.json                 # Biome（lint/format）設定
 ```
 
 ---
@@ -228,6 +229,12 @@ yarn dev
 # ビルド
 yarn build
 
+# Lint / Format（Biome）
+yarn check             # lint + format + import整理を一括（書き換え）
+yarn check:ci          # CI用、書き換えなしのチェック
+yarn lint              # lintのみ
+yarn format            # formatのみ（書き換え）
+
 # テスト
 yarn test              # 実行
 yarn test:watch        # ウォッチモード
@@ -240,6 +247,14 @@ git push origin main
 supabase db push      # マイグレーション適用
 supabase db reset     # ローカルDBリセット
 ```
+
+## Lint / Format
+
+- **ツール**: Biome（ESLint + Prettierから移行済み、PBI-014）
+- **設定**: `biome.json`
+- **方針**: `recommended` ルールセット + Next.js / React domains を有効化
+- **既存コード考慮で off / warn 化したルール**: `useButtonType`、`noSvgWithoutTitle`、`noNonNullAssertion`、`noAutofocus` 等。a11y 強化は別 PBI で対応する想定
+- **`globals.css` (Tailwind 4)**: `@theme` 等 Tailwind 4 ディレクティブを Biome がパースできないため CSS は除外
 
 ## テストインフラ
 

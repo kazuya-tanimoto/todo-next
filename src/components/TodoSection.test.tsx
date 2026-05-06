@@ -124,6 +124,7 @@ vi.mock("@/lib/supabase/client", () => ({
         return {
           select: () => ({
             in: mockTodoTagsIn,
+            // biome-ignore lint/suspicious/noThenProperty: Supabase query builder is intentionally thenable
             eq: () => ({ then: vi.fn() }),
           }),
           insert: mockTodoTagsInsert,
@@ -158,9 +159,7 @@ describe("TodoSection", () => {
   it("renders empty state when no list is selected", () => {
     render(<TodoSection selectedListId={null} />);
 
-    expect(
-      screen.getByText("Select a list to get started")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Select a list to get started")).toBeInTheDocument();
   });
 
   it("renders empty state when list has no todos", async () => {
@@ -169,14 +168,10 @@ describe("TodoSection", () => {
     render(<TodoSection selectedListId="list-1" />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Empty list. Time to add tasks!")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Empty list. Time to add tasks!")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText("No tasks yet. Add something!")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No tasks yet. Add something!")).toBeInTheDocument();
   });
 
   it("renders fetched todos", async () => {
@@ -278,9 +273,7 @@ describe("TodoSection", () => {
       expect(screen.getByText("Walk the dog")).toBeInTheDocument();
     });
 
-    await user.click(
-      screen.getByRole("button", { name: "Clear completed (1)" })
-    );
+    await user.click(screen.getByRole("button", { name: "Clear completed (1)" }));
 
     await waitFor(() => {
       expect(screen.queryByText("Walk the dog")).not.toBeInTheDocument();
@@ -305,9 +298,7 @@ describe("TodoSection", () => {
     await user.click(checkboxes[0]);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("Todoの更新")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("Todoの更新"));
     });
     // 1 originally completed (Walk the dog); count must not change
     expect(screen.getByText("1/2 completed")).toBeInTheDocument();
@@ -331,9 +322,7 @@ describe("TodoSection", () => {
     await user.click(deleteButtons[0]);
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("Todoの削除")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("Todoの削除"));
     });
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
   });
@@ -358,9 +347,7 @@ describe("TodoSection", () => {
     await user.keyboard("{Enter}");
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("Todoの更新")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("Todoの更新"));
     });
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
     expect(screen.queryByText("Buy bread")).not.toBeInTheDocument();

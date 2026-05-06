@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { Profile, Theme } from "@/types";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { useEffect, useState } from "react";
 import ListSelector from "@/components/ListSelector";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import TodoSection from "@/components/TodoSection";
 import TrashView from "@/components/TrashView";
+import { createClient } from "@/lib/supabase/client";
+import type { Profile, Theme } from "@/types";
 
 export default function Home() {
   const [theme, setTheme] = useState<Theme>("brutal");
@@ -40,11 +40,7 @@ export default function Home() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       if (data) setProfile(data);
     };
     loadProfile();
@@ -73,9 +69,7 @@ export default function Home() {
       <div className="mx-auto max-w-xl">
         {/* Header */}
         <header className="mb-8 flex items-start justify-between">
-          <h1 className="text-4xl font-black uppercase tracking-tight mb-2">
-            Todo
-          </h1>
+          <h1 className="text-4xl font-black uppercase tracking-tight mb-2">Todo</h1>
           <div className="flex items-center gap-3">
             {profile && (
               <button
@@ -86,10 +80,7 @@ export default function Home() {
                 {profile.display_name}
               </button>
             )}
-            <button
-              onClick={handleLogout}
-              className="theme-btn px-4 py-2 text-sm"
-            >
+            <button onClick={handleLogout} className="theme-btn px-4 py-2 text-sm">
               ログアウト
             </button>
           </div>

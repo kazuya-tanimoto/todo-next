@@ -1,4 +1,4 @@
-import { SortMode } from "@/types";
+import type { SortMode } from "@/types";
 
 interface Props {
   sortMode: SortMode;

@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { Tag } from "@/types";
 import TagFilter from "./TagFilter";
-import { Tag } from "@/types";
 
 const mockTags: Tag[] = [
   {
@@ -48,18 +48,10 @@ describe("TagFilter", () => {
   });
 
   it("shows aria-pressed for selected tags", () => {
-    render(
-      <TagFilter {...defaultProps} selectedTagIds={new Set(["tag-1"])} />
-    );
+    render(<TagFilter {...defaultProps} selectedTagIds={new Set(["tag-1"])} />);
 
-    expect(screen.getByText("Groceries")).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    expect(screen.getByText("Urgent")).toHaveAttribute(
-      "aria-pressed",
-      "false"
-    );
+    expect(screen.getByText("Groceries")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Urgent")).toHaveAttribute("aria-pressed", "false");
   });
 
   it("shows create form when + Tag button is clicked", async () => {

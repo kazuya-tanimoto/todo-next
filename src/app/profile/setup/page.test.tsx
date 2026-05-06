@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProfileSetupPage from "./page";
 
 const mockPush = vi.fn();
@@ -52,9 +52,7 @@ describe("Profile setup page", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("Taro Yamada")).toBeInTheDocument();
     });
-    expect(
-      screen.getByRole("heading", { name: /ニックネーム登録/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /ニックネーム登録/ })).toBeInTheDocument();
   });
 
   it("shows existing display name in editing mode", async () => {
@@ -76,9 +74,7 @@ describe("Profile setup page", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("たろう")).toBeInTheDocument();
     });
-    expect(
-      screen.getByRole("heading", { name: /ニックネーム変更/ })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /ニックネーム変更/ })).toBeInTheDocument();
   });
 
   it("shows validation error when submitting empty name", async () => {

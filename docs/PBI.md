@@ -148,7 +148,7 @@
 
 ### PBI-014: ESLint → Biome移行
 - **優先度**: 🟡 中
-- **ステータス**: `TODO`
+- **ステータス**: `DONE`
 - **目的**: ESLint + Prettierの2ツール構成は設定が複雑で遅い。Biomeに統一することでシンプルかつ高速なLint/Format環境にする。
 - **概要**: ESLint + Prettierの構成をBiomeに統一する。
 - **要件**:

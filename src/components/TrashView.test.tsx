@@ -1,18 +1,22 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import TrashView from "./TrashView";
 
-const mockGetUser = vi
-  .fn()
-  .mockResolvedValue({ data: { user: { id: "user-1" } } });
+const mockGetUser = vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } });
 
 const mockTodosUpdate = vi.fn();
 const mockTodosDelete = vi.fn();
 const mockListsUpdate = vi.fn();
 const mockListsDelete = vi.fn();
 
-let trashTodos: { id: string; text: string; list_id: string; deleted_at: string; lists?: unknown }[] = [];
+let trashTodos: {
+  id: string;
+  text: string;
+  list_id: string;
+  deleted_at: string;
+  lists?: unknown;
+}[] = [];
 let trashLists: { id: string; name: string; user_id: string; deleted_at: string }[] = [];
 
 const buildSelectChain = (rows: unknown[]) => {
@@ -66,10 +70,18 @@ describe("TrashView", () => {
     vi.clearAllMocks();
     trashTodos = [];
     trashLists = [];
-    mockTodosUpdate.mockImplementation(() => makeMutationChain({ data: [{ id: "t1" }], error: null }).update());
-    mockTodosDelete.mockImplementation(() => makeMutationChain({ data: [{ id: "t1" }], error: null }).delete());
-    mockListsUpdate.mockImplementation(() => makeMutationChain({ data: [{ id: "l1" }], error: null }).update());
-    mockListsDelete.mockImplementation(() => makeMutationChain({ data: [{ id: "l1" }], error: null }).delete());
+    mockTodosUpdate.mockImplementation(() =>
+      makeMutationChain({ data: [{ id: "t1" }], error: null }).update(),
+    );
+    mockTodosDelete.mockImplementation(() =>
+      makeMutationChain({ data: [{ id: "t1" }], error: null }).delete(),
+    );
+    mockListsUpdate.mockImplementation(() =>
+      makeMutationChain({ data: [{ id: "l1" }], error: null }).update(),
+    );
+    mockListsDelete.mockImplementation(() =>
+      makeMutationChain({ data: [{ id: "l1" }], error: null }).delete(),
+    );
   });
 
   it("shows empty state when user has no deleted items", async () => {
@@ -124,9 +136,7 @@ describe("TrashView", () => {
     await user.click(screen.getByRole("button", { name: "Restore" }));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("リストの復元に失敗")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("リストの復元に失敗"));
     });
     // List remains in UI
     expect(screen.getByText("shared-list")).toBeInTheDocument();
@@ -174,9 +184,7 @@ describe("TrashView", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("Todoの完全削除に失敗")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("Todoの完全削除に失敗"));
     });
     expect(screen.getByText("stuck-todo")).toBeInTheDocument();
   });
@@ -199,11 +207,9 @@ describe("TrashView", () => {
       },
     ];
     // todos delete returns 0 rows → 部分失敗
-    mockTodosDelete.mockImplementation(
-      () => makeMutationChain({ data: [], error: null }).delete()
-    );
-    mockListsDelete.mockImplementation(
-      () => makeMutationChain({ data: [{ id: "l1" }], error: null }).delete()
+    mockTodosDelete.mockImplementation(() => makeMutationChain({ data: [], error: null }).delete());
+    mockListsDelete.mockImplementation(() =>
+      makeMutationChain({ data: [{ id: "l1" }], error: null }).delete(),
     );
 
     window.confirm = vi.fn(() => true);
@@ -217,9 +223,7 @@ describe("TrashView", () => {
     await user.click(screen.getByRole("button", { name: "Empty trash" }));
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("ゴミ箱の一部削除")
-      );
+      expect(alertMock).toHaveBeenCalledWith(expect.stringContaining("ゴミ箱の一部削除"));
     });
   });
 });

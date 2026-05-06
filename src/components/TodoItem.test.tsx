@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import type { Todo } from "@/types";
 import TodoItem from "./TodoItem";
-import { Todo } from "@/types";
 
 vi.mock("@dnd-kit/sortable", () => ({
   useSortable: () => ({
@@ -58,9 +58,7 @@ describe("TodoItem accordion", () => {
   it("calls onUpdateDescription with new value on blur when changed", async () => {
     const user = userEvent.setup();
     const onUpdateDescription = vi.fn();
-    render(
-      <TodoItem {...defaultProps} onUpdateDescription={onUpdateDescription} />
-    );
+    render(<TodoItem {...defaultProps} onUpdateDescription={onUpdateDescription} />);
 
     await user.click(screen.getByText("Buy milk"));
 
@@ -76,11 +74,7 @@ describe("TodoItem accordion", () => {
     const onUpdateDescription = vi.fn();
     const todoWithDesc: Todo = { ...baseTodo, description: "Existing note" };
     render(
-      <TodoItem
-        {...defaultProps}
-        todo={todoWithDesc}
-        onUpdateDescription={onUpdateDescription}
-      />
+      <TodoItem {...defaultProps} todo={todoWithDesc} onUpdateDescription={onUpdateDescription} />,
     );
 
     await user.click(screen.getByText("Buy milk"));
