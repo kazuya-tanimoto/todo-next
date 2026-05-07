@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import type { Todo } from "@/types";
@@ -23,6 +23,7 @@ const baseTodo: Todo = {
   created_at: "2026-01-01T00:00:00Z",
   position: 1000,
   description: null,
+  due_date: null,
   deleted_at: null,
 };
 
@@ -33,6 +34,7 @@ const defaultProps = {
   onDelete: vi.fn(),
   onUpdateText: vi.fn(),
   onUpdateDescription: vi.fn(),
+  onUpdateDueDate: vi.fn(),
 };
 
 beforeEach(() => {
@@ -156,5 +158,74 @@ describe("TodoItem inline edit", () => {
     await user.tab();
 
     expect(onUpdateText).not.toHaveBeenCalled();
+  });
+});
+
+describe("TodoItem due date", () => {
+  it("calls onUpdateDueDate with ISO string when a date is set", async () => {
+    const user = userEvent.setup();
+    const onUpdateDueDate = vi.fn();
+    render(<TodoItem {...defaultProps} onUpdateDueDate={onUpdateDueDate} />);
+
+    await user.click(screen.getByText("Buy milk"));
+
+    const input = screen.getByLabelText("due date") as HTMLInputElement;
+    expect(input).toHaveValue("");
+
+    // datetime-local format is YYYY-MM-DDTHH:mm; userEvent.type does not handle this
+    // input type reliably across happy-dom versions, so use fireEvent.change to
+    // simulate a controlled-input change directly.
+    fireEvent.change(input, { target: { value: "2026-06-01T09:00" } });
+    fireEvent.blur(input);
+
+    expect(onUpdateDueDate).toHaveBeenCalledTimes(1);
+    const [id, iso] = onUpdateDueDate.mock.calls[0];
+    expect(id).toBe("todo-1");
+    expect(typeof iso).toBe("string");
+    expect(new Date(iso).toISOString()).toBe(new Date("2026-06-01T09:00").toISOString());
+  });
+
+  it("calls onUpdateDueDate with null when cleared", async () => {
+    const user = userEvent.setup();
+    const onUpdateDueDate = vi.fn();
+    const todoWithDue: Todo = { ...baseTodo, due_date: "2026-06-01T09:00:00.000Z" };
+    render(<TodoItem {...defaultProps} todo={todoWithDue} onUpdateDueDate={onUpdateDueDate} />);
+
+    await user.click(screen.getByText("Buy milk"));
+    await user.click(screen.getByRole("button", { name: "Clear due date" }));
+
+    expect(onUpdateDueDate).toHaveBeenCalledWith("todo-1", null);
+  });
+
+  it("renders an overdue badge when due_date is in the past", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-10T12:00:00Z"));
+    const todoOverdue: Todo = { ...baseTodo, due_date: "2026-06-01T09:00:00.000Z" };
+    render(<TodoItem {...defaultProps} todo={todoOverdue} />);
+    expect(screen.getByLabelText("due overdue")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("renders a soon badge when due_date is within 3 days", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T12:00:00Z"));
+    const todoSoon: Todo = { ...baseTodo, due_date: "2026-06-03T12:00:00.000Z" };
+    render(<TodoItem {...defaultProps} todo={todoSoon} />);
+    expect(screen.getByLabelText("due soon")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("renders a future badge when due_date is more than 3 days ahead", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T12:00:00Z"));
+    const todoFuture: Todo = { ...baseTodo, due_date: "2026-06-30T12:00:00.000Z" };
+    render(<TodoItem {...defaultProps} todo={todoFuture} />);
+    expect(screen.getByLabelText("due future")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("does not render a due badge when due_date is null", () => {
+    render(<TodoItem {...defaultProps} />);
+    expect(screen.queryByLabelText(/^due /)).not.toBeInTheDocument();
   });
 });

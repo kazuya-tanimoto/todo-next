@@ -20,6 +20,7 @@ interface Props {
   onReorder: (activeId: string, overId: string) => void;
   onUpdateText: (id: string, text: string) => void;
   onUpdateDescription: (id: string, description: string) => void;
+  onUpdateDueDate: (id: string, dueDate: string | null) => void;
 }
 
 export default function TodoList({
@@ -31,6 +32,7 @@ export default function TodoList({
   onReorder,
   onUpdateText,
   onUpdateDescription,
+  onUpdateDueDate,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -68,6 +70,7 @@ export default function TodoList({
       onDelete={onDelete}
       onUpdateText={onUpdateText}
       onUpdateDescription={onUpdateDescription}
+      onUpdateDueDate={onUpdateDueDate}
     />
   ));
 

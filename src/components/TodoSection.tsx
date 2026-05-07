@@ -33,7 +33,7 @@ export default function TodoSection({ selectedListId }: Props) {
     }
 
     const savedSort = localStorage.getItem(`sortMode:${selectedListId}`);
-    if (savedSort && ["manual", "created", "name", "completed"].includes(savedSort)) {
+    if (savedSort && ["manual", "created", "name", "completed", "due_date"].includes(savedSort)) {
       setSortMode(savedSort as SortMode);
     } else {
       setSortMode("manual");
@@ -338,6 +338,23 @@ export default function TodoSection({ selectedListId }: Props) {
     );
   };
 
+  const updateDueDate = async (id: string, dueDate: string | null) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("todos")
+      .update({ due_date: dueDate })
+      .eq("id", id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      silentFailAlert("Todoの更新");
+      return;
+    }
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === id ? { ...todo, due_date: dueDate } : todo)),
+    );
+  };
+
   const clearCompleted = async () => {
     if (!selectedListId) return;
     // 完了済みが0件のときはDBに問い合わせる必要なし。
@@ -528,6 +545,14 @@ export default function TodoSection({ selectedListId }: Props) {
           return a.position - b.position;
         });
         break;
+      case "due_date":
+        sorted.sort((a, b) => {
+          if (!a.due_date && !b.due_date) return a.position - b.position;
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        });
+        break;
     }
     return sorted;
   }, [filteredTodos, sortMode]);
@@ -627,6 +652,7 @@ export default function TodoSection({ selectedListId }: Props) {
         onReorder={reorderTodo}
         onUpdateText={updateText}
         onUpdateDescription={updateDescription}
+        onUpdateDueDate={updateDueDate}
       />
 
       {/* Footer */}

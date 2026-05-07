@@ -13,6 +13,49 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdateText: (id: string, text: string) => void;
   onUpdateDescription: (id: string, description: string) => void;
+  onUpdateDueDate?: (id: string, dueDate: string | null) => void;
+}
+
+const SOON_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+
+type DueDateStatus = "overdue" | "soon" | "future";
+
+function getDueDateStatus(due: string | null, now: number = Date.now()): DueDateStatus | null {
+  if (!due) return null;
+  const dueMs = new Date(due).getTime();
+  if (Number.isNaN(dueMs)) return null;
+  const diff = dueMs - now;
+  if (diff < 0) return "overdue";
+  if (diff <= SOON_THRESHOLD_MS) return "soon";
+  return "future";
+}
+
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInput(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function formatDueDateBadge(iso: string, now: Date = new Date()): string {
+  const due = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${pad(due.getHours())}:${pad(due.getMinutes())}`;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const dayDiff = Math.round((dueDay.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  if (dayDiff === 0) return `今日 ${time}`;
+  if (dayDiff === 1) return `明日 ${time}`;
+  if (dayDiff === -1) return `昨日 ${time}`;
+  return `${due.getMonth() + 1}/${due.getDate()} ${time}`;
 }
 
 export default function TodoItem({
@@ -22,6 +65,7 @@ export default function TodoItem({
   onDelete,
   onUpdateText,
   onUpdateDescription,
+  onUpdateDueDate,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: todo.id,
@@ -32,6 +76,7 @@ export default function TodoItem({
   const [isEditing, setIsEditing] = useState(false);
   const [textDraft, setTextDraft] = useState(todo.text);
   const [descriptionDraft, setDescriptionDraft] = useState(todo.description ?? "");
+  const [dueDateDraft, setDueDateDraft] = useState(toLocalInput(todo.due_date));
 
   useEffect(() => {
     if (isDragging) setIsExpanded(false);
@@ -46,8 +91,9 @@ export default function TodoItem({
   useEffect(() => {
     if (!isExpanded) {
       setDescriptionDraft(todo.description ?? "");
+      setDueDateDraft(toLocalInput(todo.due_date));
     }
-  }, [todo.description, isExpanded]);
+  }, [todo.description, todo.due_date, isExpanded]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -82,6 +128,28 @@ export default function TodoItem({
       onUpdateDescription(todo.id, descriptionDraft);
     }
   };
+
+  const commitDueDate = (next: string) => {
+    if (!onUpdateDueDate) return;
+    const nextIso = fromLocalInput(next);
+    if (nextIso === todo.due_date) return;
+    onUpdateDueDate(todo.id, nextIso);
+  };
+
+  const clearDueDate = () => {
+    setDueDateDraft("");
+    if (onUpdateDueDate && todo.due_date !== null) {
+      onUpdateDueDate(todo.id, null);
+    }
+  };
+
+  const dueStatus = getDueDateStatus(todo.due_date);
+  const dueBadgeColor =
+    dueStatus === "overdue"
+      ? "var(--accent)"
+      : dueStatus === "soon"
+        ? "var(--fg-primary)"
+        : "var(--fg-secondary)";
 
   return (
     <div
@@ -152,9 +220,40 @@ export default function TodoItem({
                 {todo.text}
               </span>
             )}
-            {todo.tags && todo.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {todo.tags.map((tag) => (
+            {(todo.due_date || (todo.tags && todo.tags.length > 0)) && (
+              <div className="flex flex-wrap items-center gap-1 mt-1">
+                {todo.due_date && dueStatus && (
+                  <span
+                    role="status"
+                    aria-label={`due ${dueStatus}`}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full border"
+                    style={{
+                      color: dueBadgeColor,
+                      borderColor: dueBadgeColor,
+                      opacity: todo.completed ? 0.5 : 1,
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    {formatDueDateBadge(todo.due_date)}
+                  </span>
+                )}
+                {todo.tags?.map((tag) => (
                   <span
                     key={tag.id}
                     className="inline-block px-1.5 py-0.5 text-[10px] font-medium text-white rounded-full"
@@ -211,7 +310,34 @@ export default function TodoItem({
         </button>
       </div>
       {isExpanded && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor={`due-${todo.id}`}
+              className="text-sm font-medium text-[var(--fg-secondary)] shrink-0"
+            >
+              期限
+            </label>
+            <input
+              id={`due-${todo.id}`}
+              type="datetime-local"
+              aria-label="due date"
+              value={dueDateDraft}
+              onChange={(e) => setDueDateDraft(e.target.value)}
+              onBlur={() => commitDueDate(dueDateDraft)}
+              className="theme-input px-2 py-1 text-sm"
+            />
+            {dueDateDraft && (
+              <button
+                type="button"
+                onClick={clearDueDate}
+                aria-label="Clear due date"
+                className="theme-delete px-2 py-1 text-sm font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <textarea
             aria-label="description"
             value={descriptionDraft}

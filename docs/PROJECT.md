@@ -112,7 +112,8 @@ supabase/
     ├── 20260310000000_set_replica_identity_full.sql  # REPLICA IDENTITY FULL設定
     ├── 20260319000000_add_todos_description.sql  # Todo descriptionカラム追加
     ├── 20260405000000_add_soft_delete.sql  # ソフトデリート + RLS + 連動トリガー + pg_cron
-    └── 20260408000000_fix_soft_delete_realtime.sql  # Realtime+RLS互換: deleted_at条件をSELECTから除去
+    ├── 20260408000000_fix_soft_delete_realtime.sql  # Realtime+RLS互換: deleted_at条件をSELECTから除去
+    └── 20260507000000_add_todos_due_date.sql  # PBI-009: 期限カラム + インデックス（IN PROGRESS）
 
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート

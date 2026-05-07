@@ -14,11 +14,12 @@ export interface Todo {
   created_at: string;
   position: number;
   description: string | null;
+  due_date: string | null;
   deleted_at: string | null;
   tags?: Tag[];
 }
 
-export type SortMode = "manual" | "created" | "name" | "completed";
+export type SortMode = "manual" | "created" | "name" | "completed" | "due_date";
 
 export interface Tag {
   id: string;

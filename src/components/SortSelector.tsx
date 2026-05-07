@@ -10,6 +10,7 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "created", label: "作成日" },
   { value: "name", label: "名前" },
   { value: "completed", label: "完了状態" },
+  { value: "due_date", label: "期限" },
 ];
 
 export default function SortSelector({ sortMode, onChange }: Props) {
