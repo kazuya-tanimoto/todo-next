@@ -8,8 +8,14 @@ describe("SortSelector", () => {
     const select = screen.getByRole("combobox");
     const options = screen.getAllByRole("option");
     expect(select).toHaveValue("manual");
-    expect(options).toHaveLength(4);
-    expect(options.map((o) => o.textContent)).toEqual(["手動", "作成日", "名前", "完了状態"]);
+    expect(options).toHaveLength(5);
+    expect(options.map((o) => o.textContent)).toEqual([
+      "手動",
+      "作成日",
+      "名前",
+      "完了状態",
+      "期限",
+    ]);
   });
 
   it("calls onChange when sort mode is changed", async () => {
