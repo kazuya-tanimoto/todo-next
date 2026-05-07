@@ -35,6 +35,7 @@ Supabase基盤（認証・DB・Realtime同期）が稼働中。
 - Todo詳細表示（アコーディオン式description、blur時自動保存、Realtime同期）
 - Todoタイトル編集（ダブルクリックでインライン編集、blur/Enter保存、Esc キャンセル、Realtime同期）
 - ゴミ箱機能（Todo/リストのソフトデリート、復元、完全削除、リスト→Todo連動、30日経過で自動物理削除、Realtime同期）
+- PWA対応（Web App Manifest、Service Worker、オフラインフォールバック、ホーム画面追加対応）
 
 ### Supabase設定状況
 - **リージョン**: ap-northeast-1 (東京)
