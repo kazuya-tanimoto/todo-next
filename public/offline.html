@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo - オフライン</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #fffef0;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .container {
+      text-align: center;
+      background: #ffffff;
+      border: 3px solid #1a1a1a;
+      box-shadow: 5px 5px 0px #1a1a1a;
+      padding: 2.5rem 2rem;
+      max-width: 400px;
+      width: 100%;
+    }
+    .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: #404040;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    button {
+      background: #ff6b35;
+      color: white;
+      border: 3px solid #1a1a1a;
+      box-shadow: 4px 4px 0px #1a1a1a;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+    button:hover {
+      box-shadow: 6px 6px 0px #1a1a1a;
+      transform: translate(-2px, -2px);
+    }
+    button:active {
+      box-shadow: 2px 2px 0px #1a1a1a;
+      transform: translate(2px, 2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>オフラインです</h1>
+    <p>インターネットに接続できません。<br>接続を確認してもう一度お試しください。</p>
+    <button onclick="location.reload()">再読み込み</button>
+  </div>
+</body>
+</html>
