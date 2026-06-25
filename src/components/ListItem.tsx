@@ -119,6 +119,7 @@ export default function ListItem({
     <div
       role="button"
       tabIndex={0}
+      data-testid="list-item"
       onClick={() => onSelect(list.id)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

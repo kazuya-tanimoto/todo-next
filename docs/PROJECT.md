@@ -92,7 +92,7 @@ src/
 │   └── tagColors.ts      # タグカラー定数（8色プリセット）
 ├── types/
 │   └── index.ts          # 共有型定義（List, Todo, Tag, InviteToken, ListShare, Theme, SortMode）
-├── middleware.ts          # 認証ガード + セッション更新 + redirectTo対応
+├── proxy.ts               # 認証ガード（旧 middleware.ts、Next.js 16 で改名）+ セッション更新 + redirectTo対応
 └── test/
     └── setup.ts          # テストセットアップ（jest-dom）
 
@@ -114,12 +114,20 @@ supabase/
     ├── 20260319000000_add_todos_description.sql  # Todo descriptionカラム追加
     ├── 20260405000000_add_soft_delete.sql  # ソフトデリート + RLS + 連動トリガー + pg_cron
     ├── 20260408000000_fix_soft_delete_realtime.sql  # Realtime+RLS互換: deleted_at条件をSELECTから除去
-    └── 20260507000000_add_todos_due_date.sql  # PBI-009: 期限カラム + インデックス（IN PROGRESS）
+    └── 20260507000000_add_todos_due_date.sql  # PBI-009: 期限カラム + インデックス
 
 .env                       # 環境変数（gitignore対象）
 .env.example               # 環境変数テンプレート
-vitest.config.ts           # テスト設定
+vitest.config.ts           # ユニットテスト設定（Vitest）
+playwright.config.ts       # E2Eテスト設定（Playwright、PBI-017）
+tsconfig.e2e.json          # E2E専用の型チェック設定
 biome.json                 # Biome（lint/format）設定
+
+e2e/                       # PlaywrightのE2Eスイート（PBI-017）
+├── auth.setup.ts          # 認証セットアップ（service_role seed + cookie採取 → storageState）
+├── helpers/               # supabase-admin / auth-cookie / ui
+├── todo-crud.spec.ts      # Todo CRUD（4件）
+└── list-management.spec.ts # リスト作成/改名/削除（3件）
 ```
 
 ---
@@ -237,10 +245,16 @@ yarn check:ci          # CI用、書き換えなしのチェック
 yarn lint              # lintのみ
 yarn format            # formatのみ（書き換え）
 
-# テスト
+# テスト（ユニット: Vitest）
 yarn test              # 実行
 yarn test:watch        # ウォッチモード
 yarn test:coverage     # カバレッジ付き
+
+# E2E（Playwright、要 supabase start）
+yarn test:e2e          # E2E実行
+yarn test:e2e:ui       # UIモードで実行
+yarn test:e2e:report   # 直近のレポート表示
+yarn typecheck:e2e     # E2Eの型チェック（tsconfig.e2e.json）
 
 # Vercelデプロイ（GitHub push で自動デプロイ）
 git push origin main

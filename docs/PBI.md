@@ -177,13 +177,16 @@
 
 ### PBI-017: E2Eテスト自動化
 - **優先度**: 🟢 低
-- **ステータス**: `TODO`
+- **ステータス**: `IN PROGRESS`
 - **目的**: 手動E2E確認は時間がかかり漏れも出る。自動化してリグレッションを防ぎ、安心してリファクタ・機能追加できるようにする。
 - **概要**: Playwright導入でE2Eテストを自動化。
 - **要件**:
-  - Playwright設定
-  - 認証フロー（TESTING.mdの方針に従う）
-  - 主要フローのテスト（Todo CRUD、リスト管理、共有）
+  - [x] Playwright設定（`playwright.config.ts`、setup→chromium プロジェクト、`tsconfig.e2e.json`）
+  - [x] 認証フロー（`auth.setup.ts`: service_role seed + profiles upsert + cookie採取 → storageState。TESTING.md参照）
+  - [x] 中核フローのテスト（Todo CRUD 4件、リスト管理 3件）
+  - [x] ローカルE2E実行で全green確認（2026-06-26、ローカルSupabaseで `yarn test:e2e` → setup + 7テスト = 8/8 green）
+  - [ ] 次段: 共有フロー（2セッション）、CI/Docker化
+- **メモ**: 今回スコープは中核フロー（ローカル実行のみ）で完了。`yarn test:e2e` を実機で 8/8 green 確認済み。共有フロー（2セッション）と CI/Docker 化は次段として残す。
 
 ### PBI-018: Claude Code hooksで品質ゲート整備
 - **優先度**: 🟡 中

@@ -44,6 +44,12 @@ next-env.d.ts
 # playwright MCP
 .playwright-mcp/
 
+# playwright (E2E)
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/e2e/.auth/
+
 # serena MCP
 .serena/
 

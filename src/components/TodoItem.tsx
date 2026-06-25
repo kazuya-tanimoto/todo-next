@@ -154,6 +154,7 @@ export default function TodoItem({
   return (
     <div
       ref={setNodeRef}
+      data-testid="todo-item"
       style={style}
       className={`theme-card group ${todo.completed ? "todo-completed" : ""}`}
     >

@@ -84,29 +84,48 @@ vi.mock("@/lib/supabase/client", () => ({
 - 値: `base64-` プレフィックス + セッションJSON の base64url エンコード（パディングなし）
 - ドメイン: `localhost`（`127.0.0.1` ではなく `localhost` でアクセスすること）
 
-### E2Eテスト自動化（Playwright導入時）
+### E2Eテスト自動化（Playwright）
 
-将来的にPlaywrightでテストスイートを構築する場合の方針:
+PBI-017で導入済み。`e2e/` 配下にPlaywrightのE2Eスイートを構築している。
+ローカルSupabase + 実DBに対して中核フロー（Todo CRUD / リスト管理）を検証する。
+共有フロー（2セッション）とCI/Docker化は次段に分離。
 
-Google OAuthの画面はPlaywrightで操作できない。以下の方法で認証する：
+#### 構成
 
-1. **テスト用ユーザー**をSupabaseにemail+passwordで作成（Supabaseダッシュボード → Authentication → Users）
-2. **Playwrightのglobal setup**でSupabase APIに直接ログインし、セッションcookieを`storageState`に保存
-3. 各テストは保存済みのcookieを使って認証済み状態で実行
+- `playwright.config.ts`: `testDir=e2e`、`baseURL=http://localhost:3000`、`webServer` で `yarn dev` を起動。`setup`（認証）→ `chromium`（本体テスト、storageState再利用）の依存関係。`workers:1` で直列実行。
+- `e2e/auth.setup.ts`: 認証セットアップ（後述）
+- `e2e/helpers/`: `supabase-admin.ts`（service_roleクライアント）、`auth-cookie.ts`（cookie採取）、`ui.ts`（UI操作ヘルパ）
+- `e2e/{todo-crud,list-management}.spec.ts`: テスト本体
+- 型チェックはE2E専用の `tsconfig.e2e.json`（`yarn typecheck:e2e`）。メインの `yarn typecheck` は `e2e/` を除外（Vitestと別レイヤーのため）
 
-```ts
-// playwright/global-setup.ts のイメージ
-import { createClient } from "@supabase/supabase-js";
+#### 認証セットアップ（auth.setup.ts）
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-const { data } = await supabase.auth.signInWithPassword({
-  email: process.env.TEST_USER_EMAIL!,
-  password: process.env.TEST_USER_PASSWORD!,
-});
-// → セッションcookieをstorageStateファイルに保存して全テストで再利用
-```
+Google OAuthはPlaywrightで操作できないため、cookie注入で認証済み状態を作る。
 
-**重要**: テスト用のemail認証はSupabaseの既存設定で有効。アプリのログインUIにemail認証を追加する必要はない。
+1. ローカルSupabaseのヘルスチェック（未起動なら明確に失敗させる）
+2. service_role（Admin API）でテストユーザーを ensure（無ければ `email_confirm` 済みで作成）
+3. 既存データを物理削除してクリーン化（service_role。アクティブなリストのDELETEはRLSで拒否されるため必須）
+4. `profiles` 行を upsert（主キーは `id`。無いと `proxy.ts` が `/profile/setup` へリダイレクトする）
+5. `createServerClient` の cookie-jar で本番同一の認証cookie（`sb-127-auth-token`、`base64-`プレフィックス、必要なら `.0/.1` チャンク）を採取
+6. `context.addCookies`（url=`http://localhost:3000`）→ `e2e/.auth/user.json` に storageState 保存
+
+手組みではなく `createServerClient` に cookie を生成させるのが要点。base64・チャンク分割の仕様差にハードコードで依存しない。
+
+#### 必要な環境変数（`.env.local`、テンプレートは `.env.example`）
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`（既存）
+- `SUPABASE_SERVICE_ROLE_KEY`（`supabase status` の service_role キー。ローカル専用、コミット禁止）
+- `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`
+
+#### 実行手順
+
+1. `supabase start`
+2. 初回のみ `yarn playwright install chromium`
+3. `yarn test:e2e`（レポートは `yarn test:e2e:report`）
+4. 検証後: `supabase stop`
+
+#### 注意点
+
+- アプリは必ず `localhost`（`127.0.0.1` ではない）でアクセス。cookie domain が `localhost` のため、混在すると認証cookieがリクエストに乗らず未認証扱いになる
+- 単一テストユーザーを共有するため直列実行。各テストは一意名リストを作って自己完結させる
+- Todo削除・一括削除に確認ダイアログは無いが、リスト削除は `window.confirm` が出る → 削除系テストは操作前に `page.on('dialog', d => d.accept())` を登録する
