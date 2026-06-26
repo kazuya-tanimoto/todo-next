@@ -124,10 +124,11 @@ tsconfig.e2e.json          # E2E専用の型チェック設定
 biome.json                 # Biome（lint/format）設定
 
 e2e/                       # PlaywrightのE2Eスイート（PBI-017）
-├── auth.setup.ts          # 認証セットアップ（service_role seed + cookie採取 → storageState）
+├── auth.setup.ts          # 認証セットアップ（owner/member の2ユーザーseed + cookie採取 → storageState）
 ├── helpers/               # supabase-admin / auth-cookie / ui
 ├── todo-crud.spec.ts      # Todo CRUD（4件）
-└── list-management.spec.ts # リスト作成/改名/削除（3件）
+├── list-management.spec.ts # リスト作成/改名/削除（3件）
+└── sharing.spec.ts        # 共有フロー2セッション（招待→参加、共有Todo相互可視、2件）
 ```
 
 ---

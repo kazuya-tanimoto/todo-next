@@ -48,3 +48,33 @@ export async function upsertProfile(userId: string, displayName: string): Promis
   const { error } = await admin.from("profiles").upsert({ id: userId, display_name: displayName });
   if (error) throw error;
 }
+
+// 共有フローE2E用: リスト名から有効な招待トークンを取得する。
+// クリップボード（navigator.clipboard）に依存せず DB から直接拾うことで、
+// ヘッドレス環境でも安定して member 側の /invite/{token} を開ける。
+// リスト名は各テストが一意（Shared-<timestamp>）にするため名前で一意特定できる。
+export async function getActiveInviteToken(listName: string): Promise<string> {
+  const { data: lists, error: listError } = await admin
+    .from("lists")
+    .select("id")
+    .eq("name", listName)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (listError) throw listError;
+  if (!lists || lists.length === 0) {
+    throw new Error(`No list found with name "${listName}".`);
+  }
+
+  const { data: tokens, error: tokenError } = await admin
+    .from("invite_tokens")
+    .select("token")
+    .eq("list_id", lists[0].id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (tokenError) throw tokenError;
+  if (!tokens || tokens.length === 0) {
+    throw new Error(`No active invite token for list "${listName}".`);
+  }
+  return tokens[0].token as string;
+}

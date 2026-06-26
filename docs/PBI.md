@@ -184,9 +184,10 @@
   - [x] Playwright設定（`playwright.config.ts`、setup→chromium プロジェクト、`tsconfig.e2e.json`）
   - [x] 認証フロー（`auth.setup.ts`: service_role seed + profiles upsert + cookie採取 → storageState。TESTING.md参照）
   - [x] 中核フローのテスト（Todo CRUD 4件、リスト管理 3件）
-  - [x] ローカルE2E実行で全green確認（2026-06-26、ローカルSupabaseで `yarn test:e2e` → setup + 7テスト = 8/8 green）
-  - [ ] 次段: 共有フロー（2セッション）、CI/Docker化
-- **メモ**: 今回スコープは中核フロー（ローカル実行のみ）で完了。`yarn test:e2e` を実機で 8/8 green 確認済み。共有フロー（2セッション）と CI/Docker 化は次段として残す。
+  - [x] 共有フロー（2セッション）E2E（owner招待→member参加→共有Todo相互可視、2件。owner/member の2ユーザーseed）
+  - [x] ローカルE2E実行で全green確認（2026-06-26、ローカルSupabaseで `yarn test:e2e` → setup + 9テスト = 10/10 green）
+  - [ ] 次段: CI/Docker化
+- **メモ**: 中核フロー＋共有フロー（2セッション）をローカルで自動化済み。`yarn test:e2e` を実機で 10/10 green 確認済み（2026-06-26）。残るは CI/Docker 化のみで、これは push → GitHub Actions 監視の別ループになるため次段に分離。
 
 ### PBI-018: Claude Code hooksで品質ゲート整備
 - **優先度**: 🟡 中
