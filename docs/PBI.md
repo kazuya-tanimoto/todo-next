@@ -177,7 +177,7 @@
 
 ### PBI-017: E2Eテスト自動化
 - **優先度**: 🟢 低
-- **ステータス**: `IN PROGRESS`
+- **ステータス**: `DONE`
 - **目的**: 手動E2E確認は時間がかかり漏れも出る。自動化してリグレッションを防ぎ、安心してリファクタ・機能追加できるようにする。
 - **概要**: Playwright導入でE2Eテストを自動化。
 - **要件**:
@@ -186,8 +186,8 @@
   - [x] 中核フローのテスト（Todo CRUD 4件、リスト管理 3件）
   - [x] 共有フロー（2セッション）E2E（owner招待→member参加→共有Todo相互可視、2件。owner/member の2ユーザーseed）
   - [x] ローカルE2E実行で全green確認（2026-06-26、ローカルSupabaseで `yarn test:e2e` → setup + 9テスト = 10/10 green）
-  - [ ] 次段: CI/Docker化
-- **メモ**: 中核フロー＋共有フロー（2セッション）をローカルで自動化済み。`yarn test:e2e` を実機で 10/10 green 確認済み（2026-06-26）。残るは CI/Docker 化のみで、これは push → GitHub Actions 監視の別ループになるため次段に分離。
+  - [x] CI/Docker化（`.github/workflows/ci.yml`。quality job ＝ biome/typecheck/unit、e2e job ＝ supabase start + Playwright。2026-06-27 GitHub Actions で2 job両方 success 確認）
+- **メモ**: 中核フロー＋共有フロー（2セッション）を自動化し、CI化まで完了。GitHub Actions（push/PR）で `quality`（Docker不要）と `e2e`（`supabase start` でローカルSupabaseを立てて Playwright）の2 jobが緑（run 28286584155、2026-06-27）。Docker化は `supabase start` が内部でDockerを使う構成で達成（ローカル専用 compose は過剰のため非採用）。CI手順は TESTING.md「CI（GitHub Actions）」節を参照。
 
 ### PBI-018: Claude Code hooksで品質ゲート整備
 - **優先度**: 🟡 中

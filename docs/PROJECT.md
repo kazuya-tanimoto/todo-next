@@ -129,6 +129,9 @@ e2e/                       # PlaywrightのE2Eスイート（PBI-017）
 ├── todo-crud.spec.ts      # Todo CRUD（4件）
 ├── list-management.spec.ts # リスト作成/改名/削除（3件）
 └── sharing.spec.ts        # 共有フロー2セッション（招待→参加、共有Todo相互可視、2件）
+
+.github/workflows/
+└── ci.yml                 # CI（PBI-017）。quality（biome/typecheck/unit）+ e2e（supabase start + Playwright）
 ```
 
 ---
@@ -279,4 +282,5 @@ supabase db reset     # ローカルDBリセット
 - **テストライブラリ**: @testing-library/react, @testing-library/user-event, @testing-library/jest-dom
 - **ルール**: [TESTING.md](TESTING.md) を参照
 - **E2E動作確認**: MCP Playwright + ローカルSupabase（詳細は [TESTING.md](TESTING.md) を参照）
+- **CI**: GitHub Actions（`.github/workflows/ci.yml`）。push / PR で `quality`（Biome + typecheck + unit、Docker不要）と `e2e`（`supabase start` + Playwright）を実行。詳細は [TESTING.md](TESTING.md)「CI（GitHub Actions）」節を参照
 - **注意**: Node.js 25のネイティブlocalStorageとhappy-domの競合を回避するため、vitest.config.tsで`--no-experimental-webstorage`を設定
