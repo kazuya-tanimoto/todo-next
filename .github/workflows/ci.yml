@@ -1,0 +1,113 @@
+name: CI
+
+# push（任意ブランチ）と PR で起動。同一 ref の古い run は新しい push で打ち切る。
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Docker 不要の軽量ゲート。lint / 型 / ユニットを一括で回す。
+  quality:
+    name: Lint / Typecheck / Unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Next 16 は node>=20.9。ユニットの --no-experimental-webstorage は
+          # Node 22.4+ で有効なため、安定 LTS の 22 系に合わせる。
+          node-version: 22
+
+      # packageManager: yarn@4.12.0 を corepack 経由で有効化（yarnPath は同梱バイナリを指す）。
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Biome check
+        run: yarn check:ci
+
+      - name: Typecheck (app)
+        run: yarn typecheck
+
+      - name: Typecheck (e2e)
+        run: yarn typecheck:e2e
+
+      - name: Unit tests
+        run: yarn test
+
+  # ローカル Supabase（Docker）を立てて Playwright E2E を回す重い job。
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    env:
+      # 使い捨てのローカル値。member 用は auth.setup.ts が <local>-b@<domain> を自動導出する。
+      E2E_TEST_EMAIL: e2e@example.com
+      E2E_TEST_PASSWORD: e2e-password-123
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.84.2
+
+      # supabase/ 配下の config.toml と migrations を読み、ローカルスタックを起動して
+      # 16 本のマイグレーションを適用する。
+      - name: Start Supabase
+        run: supabase start
+
+      # anon / service_role キーは起動後に supabase status から取る（ハードコードしない）。
+      # 認証 cookie 名が URL host 由来（sb-127-auth-token）になるため URL は 127.0.0.1 固定。
+      # キー名の取り違えを silent にしないよう、空なら生出力をダンプして明示的に失敗させる。
+      - name: Export Supabase env
+        run: |
+          eval "$(supabase status -o env)"
+          if [ -z "$ANON_KEY" ] || [ -z "$SERVICE_ROLE_KEY" ]; then
+            echo "::error::Failed to read keys from 'supabase status -o env'. Raw output:"
+            supabase status -o env
+            exit 1
+          fi
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps chromium
+
+      # CI=true により playwright.config の reuseExistingServer=false / forbidOnly=true が効く。
+      # webServer が yarn dev を起動し、上で書き出した env を継承する。
+      - name: Run E2E tests
+        run: yarn test:e2e
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
