@@ -145,7 +145,7 @@
 
 ### PBI-021: ゴミ箱のリスト別グルーピング
 - **優先度**: 🟢 低
-- **ステータス**: `DONE`
+- **ステータス**: `IN PROGRESS`
 - **依存**: PBI-004（ゴミ箱）
 - **目的**: 個別削除されたTodoがリスト名なしでフラットに混在表示され、どのリストのものか分からない（複数リストやPBI-012の一括削除を使うと特に顕著）。リスト単位でまとめて把握・操作できるようにする。
 - **概要**: ゴミ箱の個別削除Todo（リストは生存）を、元のリストごとにグルーピングして表示する。
@@ -155,11 +155,11 @@
   - [x] 生存リストの名前を取得（todos の inner join を `lists!inner(user_id, name)` に拡張し、`list_id → name` のマップを構築）
   - [x] リスト名が長い場合は見出しで省略（`truncate block`）し、スマホでも1行が破綻しないこと
 - **備考**: リスト数が非常に多くなった場合のリスト絞り込みフィルタは将来の追加候補（今回はスコープ外）。1案として検討した「各Todoにリスト名バッジ」は、繰り返しノイズとスマホでの行幅破綻のため不採用。
-- **メモ**: 4工程検証済み（2026-06-28）。
+- **メモ**: 工程の途中。完了判断はユーザー確認後に行う（勝手にDONEにしない）。
   - ユニット：`TrashView.test.tsx` にグルーピング検証テスト（同一リストのTodoは見出し1回＋複数リストの見出し並列）を追加し unit 89件 green / `yarn typecheck` green / `yarn check:ci`（Biome）exit 0。
-  - ローカルE2E：サンドボックスで Docker 不可のため未実行。代替として CI の e2e job（GitHub Actions、`supabase start` の実Supabase + Playwright、run 28312104287）success で担保（PBI-012と同方針）。quality job（Biome/typecheck/unit）も success。
-  - デプロイ：feature branch → main ff-merge & push（commit 460eaee）→ Vercel 自動デプロイ反映確認。
-  - 本番E2E：本番URLでゴミ箱を開き、削除済みリスト「PBI-009 E2E (prod)」は従来のリストセクション表示のまま、生存リスト「for-check-clear」「買い物リストですtest」配下に単独削除Todoが見出し付きでグルーピング表示されること、両セクションが一貫した見た目（カード＋太字リスト名見出し＋配下に項目）であること、最下部の Empty trash まで崩れないことを確認。
+  - ローカルE2E：サンドボックスで Docker 不可のため未実行。代替として CI の e2e job（GitHub Actions、`supabase start` の実Supabase + Playwright、run 28312104287）success（PBI-012と同方針）。quality job も success。
+  - デプロイ：feature branch → main ff-merge & push（commit 460eaee）。Vercel デプロイの成否は要明示確認。
+  - 本番E2E：要ユーザー確認。
 
 ---
 
