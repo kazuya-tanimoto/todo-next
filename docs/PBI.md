@@ -124,14 +124,14 @@
 
 ### PBI-012: 完了済みTodoの一括削除
 - **優先度**: 🟢 低
-- **ステータス**: `IN PROGRESS`
+- **ステータス**: `DONE`
 - **目的**: 買い物完了後など、チェック済みの項目が溜まるとリストが見づらい。一括で片付けてリストをスッキリさせる。
 - **概要**: 完了済みTodoをまとめて削除（ゴミ箱へ移動）するボタン。
 - **要件**:
   - [x] 「完了済みを削除」ボタン（`TodoSection` フッターの `Clear completed (n)`。完了が1件以上のときのみ表示）
   - [x] 確認ダイアログ（`window.confirm`。既存の削除系と統一。キャンセルで中断）
   - [x] PBI-004（ゴミ箱）と連携（`deleted_at` を一括セットするソフトデリート）
-- **メモ**: 実装＋ユニットテスト（`TodoSection.test.tsx`、確認OK/キャンセルの2ケース）green。E2E（`todo-crud.spec.ts` に accept/dismiss の2ケース追加）はサンドボックスがDocker不可のためローカル実行できず、CI（e2e job）/ ローカル手動 / 本番で要検証。検証後に DONE へ。
+- **メモ**: 実装＋ユニットテスト（`TodoSection.test.tsx`、確認OK/キャンセルの2ケース）green。E2Eは `todo-crud.spec.ts` に accept/dismiss の2ケース追加。4工程検証済み（2026-06-28）: unit 88件green / CI e2e job（実Supabase、Docker不可のローカルE2Eを代替）success / main ff-merge & push → Vercel デプロイsuccess（commit 88a1769）/ 本番URLで手動E2E（確認ダイアログ表示・キャンセルで残存・OKで完了分のみゴミ箱移動）OK。
 
 ### PBI-013: PWA対応
 - **優先度**: 🟢 低
