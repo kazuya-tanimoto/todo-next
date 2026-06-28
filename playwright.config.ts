@@ -13,7 +13,9 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  reporter: "html",
+  // CI ではGitHub注釈にエラーを出す github レポーターも併用する
+  // （失敗テストの原因を Actions ログ権限なしでも注釈APIから読めるようにするため）。
+  reporter: process.env.CI ? [["html"], ["github"]] : "html",
   use: {
     // アプリは必ず localhost でアクセスする（cookie domain が localhost のため。
     // 127.0.0.1 だと認証 cookie がリクエストに乗らず proxy が未認証判定する）。
