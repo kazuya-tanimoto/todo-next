@@ -33,12 +33,14 @@ test.describe("Trash grouping (PBI-021)", () => {
     await expect(groupA).toBeVisible();
     await expect(groupB).toBeVisible();
 
+    // グループ要素のテキスト内包で検証する。getByText の部分一致は入れ子要素に
+    // 多重ヒットして toBeVisible が strict-mode 違反になりうるため使わない。
     // A群には todoA だけが入り、todoB は混ざらない。
-    await expect(groupA.getByText(todoA)).toBeVisible();
-    await expect(groupA.getByText(todoB)).toHaveCount(0);
+    await expect(groupA).toContainText(todoA);
+    await expect(groupA).not.toContainText(todoB);
 
     // B群には todoB だけが入り、todoA は混ざらない。
-    await expect(groupB.getByText(todoB)).toBeVisible();
-    await expect(groupB.getByText(todoA)).toHaveCount(0);
+    await expect(groupB).toContainText(todoB);
+    await expect(groupB).not.toContainText(todoA);
   });
 });
