@@ -272,7 +272,7 @@ export default function TrashView({ onClose }: Props) {
 
           {/* 単独削除のTodos（元リストごとにグルーピング） */}
           {orphanGroups.map((group) => (
-            <div key={group.listId} className="mb-4">
+            <div key={group.listId} className="mb-4" data-testid="trash-group">
               <div className="theme-card p-3">
                 <div className="mb-2">
                   <span className="font-bold truncate block">{group.listName}</span>
