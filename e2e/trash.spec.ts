@@ -23,8 +23,10 @@ test.describe("Trash grouping (PBI-021)", () => {
     await todoItem(page, todoB).getByRole("button", { name: "Delete task" }).click();
     await expect(todoItem(page, todoB)).toHaveCount(0);
 
-    // ゴミ箱を開く。
-    await page.getByRole("button", { name: "Trash" }).click();
+    // ゴミ箱を開く。リスト名が "Trash..." で始まるとリスト項目やその
+    // Share/Rename/Delete ボタン（aria-label に名前を含む）も部分一致してしまうため、
+    // exact: true でトグルボタン（accessible name がちょうど "Trash"）だけに絞る。
+    await page.getByRole("button", { name: "Trash", exact: true }).click();
 
     // 単独削除Todoが元リストごとの見出し配下にまとまっていること（PBI-021の肝）。
     const groupA = page.getByTestId("trash-group").filter({ hasText: listA });
