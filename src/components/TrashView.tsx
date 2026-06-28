@@ -16,6 +16,8 @@ interface DeletedList extends List {
 export default function TrashView({ onClose }: Props) {
   const [deletedTodos, setDeletedTodos] = useState<Todo[]>([]);
   const [deletedLists, setDeletedLists] = useState<DeletedList[]>([]);
+  // 単独削除Todoの元リスト（生存中）の名前。list_id → name。
+  const [listNames, setListNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchTrash = async () => {
@@ -35,7 +37,7 @@ export default function TrashView({ onClose }: Props) {
     const [todosResult, listsResult] = await Promise.all([
       supabase
         .from("todos")
-        .select("*, lists!inner(user_id)")
+        .select("*, lists!inner(user_id, name)")
         .eq("lists.user_id", user.id)
         .not("deleted_at", "is", null)
         .order("deleted_at", { ascending: false }),
@@ -47,8 +49,17 @@ export default function TrashView({ onClose }: Props) {
         .order("deleted_at", { ascending: false }),
     ]);
 
-    const allDeletedTodos = (todosResult.data ?? []).map(({ lists: _lists, ...t }) => t as Todo);
+    const rawTodos = todosResult.data ?? [];
+    const allDeletedTodos = rawTodos.map(({ lists: _lists, ...t }) => t as Todo);
     const allDeletedLists = listsResult.data ?? [];
+
+    // 単独削除Todoを元リストごとにグルーピングするため、join 経由で
+    // 生存リスト名を list_id → name で取得する。
+    const aliveListNames: Record<string, string> = {};
+    for (const row of rawTodos) {
+      const embeddedList = row.lists as { name?: string } | null | undefined;
+      if (embeddedList?.name) aliveListNames[row.list_id] = embeddedList.name;
+    }
 
     // リストごとのtodosをグルーピング
     const deletedListIds = new Set(allDeletedLists.map((l) => l.id));
@@ -62,6 +73,7 @@ export default function TrashView({ onClose }: Props) {
 
     setDeletedLists(listsWithTodos);
     setDeletedTodos(orphanTodos);
+    setListNames(aliveListNames);
     setIsLoading(false);
   };
 
@@ -183,6 +195,22 @@ export default function TrashView({ onClose }: Props) {
     deletedLists.reduce((sum, l) => sum + l.todos.length, 0) +
     deletedLists.length;
 
+  // 単独削除Todoを元リストごとにまとめる。deletedTodos は deleted_at 降順なので、
+  // グループは「最も新しく削除されたTodoを含む順」で並ぶ。
+  const orphanGroups = Object.values(
+    deletedTodos.reduce<Record<string, { listId: string; listName: string; todos: Todo[] }>>(
+      (acc, todo) => {
+        const lid = todo.list_id;
+        if (!acc[lid]) {
+          acc[lid] = { listId: lid, listName: listNames[lid] ?? "Unknown list", todos: [] };
+        }
+        acc[lid].todos.push(todo);
+        return acc;
+      },
+      {},
+    ),
+  );
+
   if (isLoading) {
     return <div className="text-[var(--fg-secondary)]">Loading trash...</div>;
   }
@@ -242,35 +270,44 @@ export default function TrashView({ onClose }: Props) {
             </div>
           ))}
 
-          {/* 単独削除のTodos */}
-          {deletedTodos.map((todo) => (
-            <div key={todo.id} className="mb-2">
+          {/* 単独削除のTodos（元リストごとにグルーピング） */}
+          {orphanGroups.map((group) => (
+            <div key={group.listId} className="mb-4">
               <div className="theme-card p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <span
-                      className={todo.completed ? "line-through text-[var(--fg-secondary)]" : ""}
-                    >
-                      {todo.text}
-                    </span>
-                    <span className="text-xs text-[var(--fg-secondary)] ml-2">
-                      {daysAgo(todo.deleted_at!)}
-                    </span>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => restoreTodo(todo.id)}
-                      className="theme-btn px-2 py-1 text-xs"
-                    >
-                      Restore
-                    </button>
-                    <button
-                      onClick={() => permanentDeleteTodo(todo.id)}
-                      className="theme-delete px-2 py-1 text-xs"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                <div className="mb-2">
+                  <span className="font-bold truncate block">{group.listName}</span>
+                </div>
+                <div className="ml-4 space-y-2">
+                  {group.todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className={
+                            todo.completed ? "line-through text-[var(--fg-secondary)]" : ""
+                          }
+                        >
+                          {todo.text}
+                        </span>
+                        <span className="text-xs text-[var(--fg-secondary)] ml-2">
+                          {daysAgo(todo.deleted_at!)}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => restoreTodo(todo.id)}
+                          className="theme-btn px-2 py-1 text-xs"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          onClick={() => permanentDeleteTodo(todo.id)}
+                          className="theme-delete px-2 py-1 text-xs"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

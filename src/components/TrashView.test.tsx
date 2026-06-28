@@ -106,13 +106,55 @@ describe("TrashView", () => {
         text: "orphan-todo",
         list_id: "l-active",
         deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "active-list" },
       },
     ];
     render(<TrashView onClose={vi.fn()} />);
     await waitFor(() => {
       expect(screen.getByText("old-list")).toBeInTheDocument();
       expect(screen.getByText("orphan-todo")).toBeInTheDocument();
+      // 単独削除Todoは元リスト名の見出し配下に表示される（PBI-021）
+      expect(screen.getByText("active-list")).toBeInTheDocument();
     });
+  });
+
+  it("groups orphan todos under their source list headings (PBI-021)", async () => {
+    trashTodos = [
+      {
+        id: "t1",
+        text: "milk",
+        list_id: "list-shopping",
+        deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "Shopping" },
+      },
+      {
+        id: "t2",
+        text: "eggs",
+        list_id: "list-shopping",
+        deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "Shopping" },
+      },
+      {
+        id: "t3",
+        text: "deploy",
+        list_id: "list-work",
+        deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "Work" },
+      },
+    ];
+    render(<TrashView onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("milk")).toBeInTheDocument();
+    });
+
+    // 各リスト名見出しは1回だけ表示される（同一リストのTodoはまとまる）
+    expect(screen.getAllByText("Shopping")).toHaveLength(1);
+    expect(screen.getAllByText("Work")).toHaveLength(1);
+    // すべてのTodoが表示される
+    expect(screen.getByText("milk")).toBeInTheDocument();
+    expect(screen.getByText("eggs")).toBeInTheDocument();
+    expect(screen.getByText("deploy")).toBeInTheDocument();
   });
 
   it("alerts and keeps list when restore returns 0 rows (silent fail)", async () => {
@@ -170,6 +212,7 @@ describe("TrashView", () => {
         text: "stuck-todo",
         list_id: "l-active",
         deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "active-list" },
       },
     ];
     mockTodosDelete.mockImplementation(() => makeMutationChain({ data: [], error: null }).delete());
@@ -196,6 +239,7 @@ describe("TrashView", () => {
         text: "stuck-todo",
         list_id: "l-active",
         deleted_at: new Date().toISOString(),
+        lists: { user_id: "user-1", name: "active-list" },
       },
     ];
     trashLists = [
