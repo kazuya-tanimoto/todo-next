@@ -362,6 +362,8 @@ export default function TodoSection({ selectedListId }: Props) {
     const completedCount = todos.filter((t) => t.completed).length;
     if (completedCount === 0) return;
 
+    if (!window.confirm(`完了済みの${completedCount}件をゴミ箱に移動しますか？`)) return;
+
     const supabase = createClient();
     const { data, error } = await supabase
       .from("todos")

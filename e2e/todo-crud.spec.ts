@@ -51,4 +51,37 @@ test.describe("Todo CRUD", () => {
     await expect(page.getByText("No tasks yet. Add something!")).toBeVisible();
     await expect(page.getByText("Empty list. Time to add tasks!")).toBeVisible();
   });
+
+  test("clears completed todos after confirming the dialog", async ({ page }) => {
+    await addTodo(page, "Done task");
+    await addTodo(page, "Pending task");
+
+    // 「Done task」だけ完了にする
+    const done = todoItem(page, "Done task");
+    await done.getByRole("checkbox").click();
+    await expect(done.getByRole("checkbox")).toBeChecked();
+
+    // Clear completed は window.confirm を出すので accept を登録してから押す
+    page.on("dialog", (d) => d.accept());
+    await page.getByRole("button", { name: "Clear completed (1)" }).click();
+
+    // 完了済みのみゴミ箱へ移動、未完了は残る
+    await expect(todoItem(page, "Done task")).toHaveCount(0);
+    await expect(todoItem(page, "Pending task")).toBeVisible();
+    await expect(page.getByText("0/1 completed")).toBeVisible();
+  });
+
+  test("keeps completed todos when the clear dialog is dismissed", async ({ page }) => {
+    await addTodo(page, "Keep me");
+    const item = todoItem(page, "Keep me");
+    await item.getByRole("checkbox").click();
+    await expect(item.getByRole("checkbox")).toBeChecked();
+
+    // 確認ダイアログをキャンセルしたら完了済みTodoは残る
+    page.on("dialog", (d) => d.dismiss());
+    await page.getByRole("button", { name: "Clear completed (1)" }).click();
+
+    await expect(todoItem(page, "Keep me")).toBeVisible();
+    await expect(page.getByText("1/1 completed")).toBeVisible();
+  });
 });

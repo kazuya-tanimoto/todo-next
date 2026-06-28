@@ -151,6 +151,7 @@ beforeEach(() => {
   });
   mockTagsSingle.mockResolvedValue({ data: null, error: null });
   window.alert = vi.fn();
+  window.confirm = vi.fn(() => true);
   mockTodoTagsIn.mockResolvedValue({ data: [], error: null });
   mockTodoTagsInsert.mockResolvedValue({ error: null });
 });
@@ -278,8 +279,28 @@ describe("TodoSection", () => {
     await waitFor(() => {
       expect(screen.queryByText("Walk the dog")).not.toBeInTheDocument();
     });
+    expect(window.confirm).toHaveBeenCalled();
     expect(screen.getByText("Buy milk")).toBeInTheDocument();
     expect(screen.getByText("0/1 completed")).toBeInTheDocument();
+  });
+
+  it("keeps completed todos when clear confirmation is declined", async () => {
+    const user = userEvent.setup();
+    const confirmMock = vi.fn(() => false);
+    window.confirm = confirmMock;
+
+    render(<TodoSection selectedListId="list-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Walk the dog")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Clear completed (1)" }));
+
+    expect(confirmMock).toHaveBeenCalled();
+    // 確認をキャンセルしたので完了済みTodoは残る
+    expect(screen.getByText("Walk the dog")).toBeInTheDocument();
+    expect(screen.getByText("1/2 completed")).toBeInTheDocument();
   });
 
   it("alerts and keeps todo when toggle returns 0 rows (silent fail)", async () => {
