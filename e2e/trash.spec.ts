@@ -45,4 +45,29 @@ test.describe("Trash grouping (PBI-021)", () => {
     await expect(groupB).toContainText(todoB);
     await expect(groupB).not.toContainText(todoA);
   });
+
+  test("trash delete buttons stay visible in Mono theme (PBI-020-type regression)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const stamp = Date.now();
+    const list = `TrashTheme-${stamp}`;
+    const todo = `theme-item-${stamp}`;
+
+    await createList(page, list);
+    await addTodo(page, todo);
+    await todoItem(page, todo).getByRole("button", { name: "Delete task" }).click();
+    await expect(todoItem(page, todo)).toHaveCount(0);
+
+    // 既定テーマは brutal（theme-delete が常時表示）。Mono/Natural は .theme-delete が
+    // opacity:0 で、ホバー非依存の表示が無いとゴミ箱の削除ボタンが透明になる回帰を防ぐ。
+    // toBeVisible は opacity:0 を不可視扱いしないため、computed opacity を直接検証する。
+    await page.getByRole("button", { name: /Mono/ }).click();
+    await page.getByRole("button", { name: "Trash", exact: true }).click();
+
+    const group = page.getByTestId("trash-group").filter({ hasText: list });
+    await expect(group).toBeVisible();
+    await expect(group.getByRole("button", { name: "Delete" }).first()).toHaveCSS("opacity", "1");
+  });
 });

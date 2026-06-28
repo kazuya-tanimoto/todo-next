@@ -247,6 +247,12 @@ body {
   color: white;
 }
 
+/* ゴミ箱は管理画面（スマホはホバー無し）なので、削除ボタンをホバー非依存で
+   常時表示する。.theme-delete{opacity:0} に specificity (0,2,0) で勝つ。 */
+.trash-view .theme-delete {
+  opacity: 1;
+}
+
 /* Completed state */
 .todo-completed {
   background: var(--completed-bg);

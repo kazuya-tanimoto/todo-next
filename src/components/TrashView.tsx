@@ -216,7 +216,7 @@ export default function TrashView({ onClose }: Props) {
   }
 
   return (
-    <div>
+    <div className="trash-view">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold">Trash</h2>
         <button
