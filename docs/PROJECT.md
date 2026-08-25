@@ -123,6 +123,8 @@ vitest.config.ts           # ユニットテスト設定（Vitest）
 playwright.config.ts       # E2Eテスト設定（Playwright、PBI-017）
 tsconfig.e2e.json          # E2E専用の型チェック設定
 biome.json                 # Biome（lint/format）設定
+.worktreeinclude           # worktree に持ち込む gitignore 済みファイルの列挙（.env / .env.local）
+.devcontainer/             # コンテナ開発環境（Dockerfile / setup-container.sh / firewall 等）
 
 e2e/                       # PlaywrightのE2Eスイート（PBI-017）
 ├── auth.setup.ts          # 認証セットアップ（owner/member の2ユーザーseed + cookie採取 → storageState）

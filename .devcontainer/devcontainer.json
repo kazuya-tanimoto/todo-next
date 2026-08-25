@@ -1,0 +1,38 @@
+{
+  "name": "todo-next (Claude Code sandbox)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:Asia/Tokyo}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.0",
+      "PLAYWRIGHT_VERSION": "1.59.1"
+    }
+  },
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+  "remoteUser": "node",
+  "mounts": [
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=claude-code-gh-${devcontainerId},target=/home/node/.config/gh,type=volume",
+    "source=claude-code-node-modules-${devcontainerId},target=/workspace/node_modules,type=volume",
+    "source=${localEnv:HOME}/dotfiles/claude,target=/mnt/host-claude,type=bind,readonly"
+  ],
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "YARN_INSTALL_STATE_PATH": "/home/node/.cache/yarn/install-state.gz",
+    "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
+    "COLORTERM": "truecolor",
+    "CCD_REPO_NAME": "${localWorkspaceFolderBasename}",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "bash .devcontainer/setup-container.sh create",
+  "postStartCommand": "bash .devcontainer/setup-container.sh start && sudo /usr/local/bin/init-firewall.sh",
+  "waitFor": "postStartCommand"
+}
