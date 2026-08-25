@@ -56,5 +56,8 @@ next-env.d.ts
 # claude code (local)
 .claude/settings.local.json
 
+# herdr devcontainer bridge
+.herdr-state/
+
 # JetBrains IDE
 .idea/
