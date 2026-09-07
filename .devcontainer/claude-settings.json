@@ -1,6 +1,8 @@
 {
   "model": "opus[1m]",
   "outputStyle": "concise-ja",
+  "feedbackDrafts": "off",
+  "feedbackSurveyRate": 0,
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "remoteControlAtStartup": true,

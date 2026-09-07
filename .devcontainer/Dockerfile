@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ipset \
   iproute2 \
   dnsutils \
+  dnsmasq-base \
   aggregate \
   jq \
   nano \
@@ -66,6 +67,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
   wget "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
+
+# uv（natural-japanese 等の PEP 723 スクリプト用）。依存は setup 時に firewall 前で取り込み、
+# 以後は UV_OFFLINE=1（devcontainer.json）でキャッシュだけで動かす。版は uv の公式 image に合わせて上げる
+COPY --from=ghcr.io/astral-sh/uv:0.11.7 /uv /uvx /usr/local/bin/
 
 # Set up non-root user
 USER node

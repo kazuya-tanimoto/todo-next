@@ -17,11 +17,23 @@
     "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
     "source=claude-code-gh-${devcontainerId},target=/home/node/.config/gh,type=volume",
     "source=claude-code-node-modules-${devcontainerId},target=/workspace/node_modules,type=volume",
-    "source=${localEnv:HOME}/dotfiles/claude,target=/mnt/host-claude,type=bind,readonly"
+    "source=${localEnv:HOME}/dotfiles/claude,target=/mnt/host-claude,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude/plugins,target=/mnt/host-claude-plugins,type=bind,readonly",
+    {
+      "source": "${localEnv:HOME}/Library/Application Support/CleanShot/media",
+      "target": "${localEnv:HOME}/Library/Application Support/CleanShot/media",
+      "type": "bind",
+      "readonly": true
+    }
   ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "DISABLE_AUTOUPDATER": "1",
+    "UV_OFFLINE": "1",
+    "PLAYWRIGHT_MCP_BROWSER": "chromium",
+    "PLAYWRIGHT_MCP_HEADLESS": "1",
+    "PLAYWRIGHT_MCP_EXECUTABLE_PATH": "/home/node/.local/share/playwright-mcp/chrome",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "YARN_INSTALL_STATE_PATH": "/home/node/.cache/yarn/install-state.gz",
     "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",

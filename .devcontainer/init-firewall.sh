@@ -5,13 +5,25 @@
 #   - VS Code 系ドメインを削除（ターミナル完結フローのため）
 #   - SSH(22) の全開放を削除（push は HTTPS + fine-grained PAT のみ。SSH 鍵は持ち込まない）
 #   - ipset add は -exist 付き（GitHub レンジと個別 IP の重複を許容）
+#   - allowed-domains.conf の dynamic 行を dnsmasq + ipset で動的許可（setup_dynamic_dns）
+#   - 母艦共通の許可先（dotfiles の allowed-domains-common.conf、read-only mount）を repo の conf の前に読む
 set -euo pipefail  # Exit on error, undefined vars, and pipeline failures
 IFS=$'\n\t'       # Stricter word splitting
 
 ALLOWED_CONF="/workspace/.devcontainer/allowed-domains.conf"
+# 母艦共通の許可先（~/dotfiles/claude/devcontainer/allowed-domains-common.conf の read-only mount）。
+# plugin の MCP 接続先のように、repo によらず全コンテナで要る許可先はこちらに書く（母艦だけで足せる）
+COMMON_CONF="/mnt/host-claude/devcontainer/allowed-domains-common.conf"
 
 # 1. Extract Docker DNS info BEFORE any flushing
 DOCKER_DNS_RULES=$(iptables-save -t nat | grep "127\.0\.0\.11" || true)
+
+# 再実行に耐えるよう policy を先に ACCEPT へ戻す。iptables -F はルールを消すだけで
+# policy は前回の DROP が残るため、これが無いと再実行時に自分の DROP で
+# api.github.com を引けずに exit 1 し、DNS 以外が全て落ちた状態で固まる
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
 
 # Flush existing rules and delete existing ipsets
 iptables -F
@@ -113,6 +125,43 @@ add_cidr_url() {
     done < <(echo "$ranges")
 }
 
+# FQDN 連動の動的許可。allowed-domains.conf の `dynamic <domain>` 行で指定されたドメインを、
+# dnsmasq の ipset 連携で「名前解決した瞬間に回答 IP を allowed-domains に追加」する。
+# 再実行に耐える: 既存の dnsmasq を止めてから立て直し、上流は初回に退避した resolv.conf から取る。
+setup_dynamic_dns() {
+    if [ "${#DYNAMIC_DOMAINS[@]}" -eq 0 ]; then
+        return 0
+    fi
+    if ! command -v dnsmasq >/dev/null 2>&1; then
+        echo "WARN: dnsmasq not installed - dynamic domains stay blocked: ${DYNAMIC_DOMAINS[*]}"
+        return 0
+    fi
+    # 上流 DNS は「dnsmasq を挟む前の resolv.conf」から取る。初回だけ退避し、以後はそれを使う
+    if [ ! -f /etc/resolv.conf.upstream ]; then
+        cp /etc/resolv.conf /etc/resolv.conf.upstream
+    fi
+    local -a upstreams=()
+    mapfile -t upstreams < <(awk '/^nameserver/ && $2 != "127.0.0.1" {print "--server=" $2}' /etc/resolv.conf.upstream)
+    if [ "${#upstreams[@]}" -eq 0 ]; then
+        echo "WARN: no upstream nameserver found in /etc/resolv.conf.upstream - dynamic domains stay blocked"
+        return 0
+    fi
+    mkdir -p /etc/dnsmasq.d
+    local conf=/etc/dnsmasq.d/allowed-domains.conf
+    : > "$conf"
+    local d
+    for d in "${DYNAMIC_DOMAINS[@]}"; do
+        echo "ipset=/${d}/allowed-domains" >> "$conf"
+    done
+    pkill -x dnsmasq 2>/dev/null || true
+    dnsmasq --no-resolv "${upstreams[@]}" \
+        --listen-address=127.0.0.1 --port=53 --bind-interfaces \
+        --conf-file=/dev/null --conf-dir=/etc/dnsmasq.d \
+        --pid-file=/run/dnsmasq-allowed.pid
+    printf 'nameserver 127.0.0.1\n' > /etc/resolv.conf
+    echo "dnsmasq started (dynamic allow): ${DYNAMIC_DOMAINS[*]} via ${upstreams[*]}"
+}
+
 # Fetch GitHub meta information and aggregate + add their IP ranges
 echo "Fetching GitHub IP ranges..."
 gh_ranges=$(curl -s https://api.github.com/meta)
@@ -146,24 +195,33 @@ for domain in \
     add_domain "$domain"
 done
 
-# Repo-specific allowed domains (allowed-domains.conf)
+# Allowed-domains conf（共通: $COMMON_CONF → repo 固有: $ALLOWED_CONF の順に読む）
 #   書式: 1 行 1 ドメイン。`cidr-url <URL>` 行は CIDR リスト（1 行 1 CIDR の
 #   プレーンテキスト）を取得してレンジごと追加。`#` 以降はコメント。
-if [ -f "$ALLOWED_CONF" ]; then
-    echo "Processing $ALLOWED_CONF..."
+#   `dynamic <domain>` 行は dnsmasq + ipset で「名前解決した瞬間に許可」（setup_dynamic_dns）。
+DYNAMIC_DOMAINS=()
+process_conf() {
+    local conf="$1" label="$2" line
+    if [ ! -f "$conf" ]; then
+        echo "No $conf found, skipping $label domains"
+        return 0
+    fi
+    echo "Processing $conf ($label)..."
     while read -r line; do
         line="${line%%#*}"
         line="$(echo "$line" | xargs || true)"
         [ -z "$line" ] && continue
         if [[ "$line" == cidr-url\ * ]]; then
             add_cidr_url "${line#cidr-url }"
+        elif [[ "$line" == dynamic\ * ]]; then
+            DYNAMIC_DOMAINS+=("${line#dynamic }")
         else
             add_domain "$line"
         fi
-    done < "$ALLOWED_CONF"
-else
-    echo "No $ALLOWED_CONF found, skipping repo-specific domains"
-fi
+    done < "$conf"
+}
+process_conf "$COMMON_CONF" "common"
+process_conf "$ALLOWED_CONF" "repo-specific"
 
 # Get host IP from default route
 HOST_IP=$(ip route | grep default | cut -d" " -f3)
@@ -193,6 +251,8 @@ iptables -A OUTPUT -m set --match-set allowed-domains dst -j ACCEPT
 
 # Explicitly REJECT all other outbound traffic for immediate feedback
 iptables -A OUTPUT -j REJECT --reject-with icmp-admin-prohibited
+
+setup_dynamic_dns
 
 echo "Firewall configuration complete"
 echo "Verifying firewall rules..."
