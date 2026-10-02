@@ -57,8 +57,8 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
 ENV DEVCONTAINER=true
 
 # Create workspace and config directories and set permissions
-RUN mkdir -p /workspace /home/node/.claude /home/node/.config/gh /home/node/.cache && \
-  chown -R node:node /workspace /home/node/.claude /home/node/.config /home/node/.cache
+RUN mkdir -p /workspace /home/node/.claude /home/node/.config/gh /home/node/.cache /home/node/.gemini && \
+  chown -R node:node /workspace /home/node/.claude /home/node/.config /home/node/.cache /home/node/.gemini
 
 WORKDIR /workspace
 
@@ -102,6 +102,13 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
 # 実行して検証し、壊れたイメージをビルド時点で落とす
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
   && claude --version
+
+# Antigravity CLI（agy）。記事の初稿を Gemini に書かせる（~/.claude/bin/gemini-draft.sh が呼ぶ）。
+# install.sh は版を選べない（最新の manifest を sha512 検証して置く）。実行中に裏で自己更新するので、
+# allowed-domains-common.conf の run.app を消さない。ログインは repo ごとの volume（~/.gemini）に残る
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir /home/node/.local/bin \
+  && /home/node/.local/bin/agy --version
+ENV PATH=$PATH:/home/node/.local/bin
 
 # Copy and set up firewall / perms scripts
 # （node に許す sudo はこの固定 2 スクリプトのみ。汎用 sudo は与えない）
